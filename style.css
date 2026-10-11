@@ -60,3 +60,5 @@ header.wrap{gap:24px}header.wrap nav{gap:20px}nav a[aria-current=page]{text-deco
 .signup-dialog #signup-status{margin:0}
 .signup-dialog #signup-consent{font-size:15px;margin:4px 0 0;text-align:center}
 .signup-dialog #signup-consent[hidden]{display:none}
+.signup-secondary:not(:has(button:not([hidden]))){display:none}
+.signup-dialog #signup-skip{align-self:center}
