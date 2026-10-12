@@ -25,14 +25,13 @@ document.querySelectorAll('[data-privacy]').forEach(b=>b.onclick=showPrivacy);
 const waitlistDialog=document.querySelector('#waitlist-dialog');
 const signupTitle=document.querySelector('#waitlist-title'),signupStatus=document.querySelector('#signup-status'),signupPrimary=document.querySelector('#signup-primary');
 let signupStage='contact',savedSignup=null,signupFirstName='',signupPhone='',helpFor=null;
-const recipientDrafts={self:null,other:null};
 function showSignupStage(stage){
  signupStage=stage;signupStatus.textContent='';signupPrimary.disabled=false;
- const copy={contact:['Step 1 of 3 · Join the waitlist','Your contact details','We’ll email you when Safekeep is ready.','Join the waitlist','waitlist-form'],audience:['Step 2 of 3 · Optional','Who is the help for?','You’re on the waitlist. Help us understand what you need.','Continue','audience-form'],recipient:['Step 3 of 3 · Optional',helpFor==='other'?'Their contact details':'Add your phone number',helpFor==='other'?'Tell us who you’d like scam help for.':'You left this blank earlier. Would you like to add it?' ,'Save details','recipient-form'],complete:['You’re all set','Thank you for joining','Your place on the waitlist is saved.','Done',null]}[stage];
- document.querySelector('#signup-step').textContent=copy[0];signupTitle.textContent=copy[1];document.querySelector('#signup-description').textContent=copy[2];
+ const copy={contact:['','Your contact details','We’ll email you when Safekeep is ready.','Join the waitlist','waitlist-form'],audience:['Optional','Who is the help for?','You’re on the waitlist. Help us understand what you need.','Continue','audience-form'],recipient:['Optional',helpFor==='other'?'Their contact details':'Add your phone number',helpFor==='other'?'Tell us who you’d like scam help for.':'You left this blank earlier. Would you like to add it?' ,'Save details','recipient-form'],complete:['You’re all set','Thank you for joining','Your place on the waitlist is saved.','Done',null]}[stage];
+ const stepLabel=document.querySelector('#signup-step');stepLabel.textContent=copy[0];stepLabel.hidden=!copy[0];signupTitle.textContent=copy[1];document.querySelector('#signup-description').textContent=copy[2];
  for(const [id,key] of [['waitlist-form','contact'],['audience-form','audience'],['recipient-form','recipient'],['signup-complete','complete']])document.getElementById(id).hidden=stage!==key;
  signupPrimary.textContent=copy[3];signupPrimary.type=copy[4]?'submit':'button';if(copy[4])signupPrimary.setAttribute('form',copy[4]);else signupPrimary.removeAttribute('form');
- document.querySelector('#signup-back').hidden=stage!=='recipient';document.querySelector('#signup-consent').hidden=stage!=='contact';document.querySelector('#signup-skip').hidden=!['audience','recipient'].includes(stage);
+ document.querySelector('#signup-consent').hidden=stage!=='contact';document.querySelector('#signup-skip').hidden=!['audience','recipient'].includes(stage);
  document.querySelector('.signup-body').scrollTop=0;signupTitle.focus({preventScroll:true});
 }
 function openWaitlist(){if(!waitlistDialog.open){waitlistDialog.showModal();fitSignupToViewport();signupTitle.focus({preventScroll:true});trackFunnel('form_open');}}
@@ -48,7 +47,6 @@ document.querySelector('#waitlist-form').addEventListener('submit',async e=>{
  catch(error){signupStatus.textContent=error.message==='Failed to fetch'?'Please check your connection and try again.':error.message;signupPrimary.textContent='Join the waitlist';signupPrimary.disabled=false;}
 });
 async function readResult(response){try{return await response.json();}catch{return {};}}
-function rememberRecipient(){if(helpFor)recipientDrafts[helpFor]={name:document.querySelector('#recipient-name').value,email:document.querySelector('#recipient-email').value,phone:document.querySelector('#recipient-phone').value};}
 function phoneDigits(value){const digits=value.replace(/\D/g,'');return digits.length===11&&digits[0]==='1'?digits.slice(1):digits;}
 function formatPhoneInput(input){const value=input.value;if(!/^[+\d\s().-]*$/.test(value))return;const digits=phoneDigits(value);if(digits.length>10)return;input.value=digits.length>6?digits.slice(0,3)+'-'+digits.slice(3,6)+'-'+digits.slice(6):digits.length>3?digits.slice(0,3)+'-'+digits.slice(3):digits;}
 function validatePhoneInput(input){const value=input.value.trim(),digits=phoneDigits(value);input.setCustomValidity(!value||(/^[+\d\s().-]+$/.test(value)&&digits.length===10)?'':'Please enter all 10 digits, including the area code. For example: 212-555-1234. You can also leave this optional field blank.');}
@@ -62,12 +60,11 @@ document.querySelector('#audience-form').addEventListener('submit',async e=>{
  e.preventDefault();if(!e.currentTarget.reportValidity())return;helpFor=new FormData(e.currentTarget).get('helpFor');
  if(helpFor==='self'&&signupPhone){await saveRecipient({helpFor:'self',step:'audience',finish:true},'Continue');return;}
  signupPrimary.disabled=true;signupPrimary.textContent='Saving…';signupStatus.textContent='';
- const self=helpFor==='self',draft=recipientDrafts[helpFor];
+ const self=helpFor==='self';
  document.querySelector('#other-person-fields').hidden=self;for(const id of ['recipient-name','recipient-email'])document.getElementById(id).disabled=self;
- document.querySelector('#recipient-name').value=draft?.name||'';document.querySelector('#recipient-email').value=draft?.email||'';document.querySelector('#recipient-phone').value=draft?.phone||'';document.querySelector('#recipient-phone').setCustomValidity('');
+ document.querySelector('#recipient-name').value='';document.querySelector('#recipient-email').value='';document.querySelector('#recipient-phone').value='';document.querySelector('#recipient-phone').setCustomValidity('');
  document.querySelector('#recipient-phone-label').textContent=self?'Your phone number':'Their phone number';document.querySelector('#recipient-note').textContent=self?'Optional. This won’t start automated texts or calls.':'Share their details only with permission. We won’t contact them automatically.';showSignupStage('recipient');
 });
-document.querySelector('#signup-back').onclick=()=>{rememberRecipient();showSignupStage('audience');};
 document.querySelector('#signup-skip').onclick=()=>{if(savedSignup&&helpFor){submitToFormspree({step:'details',...savedSignup,helpFor}).catch(()=>{});savedSignup=null;}document.querySelector('#signup-complete-copy').textContent='Your initial contact details are saved. Any choices or details you already saved are kept. No unsaved fields were submitted.';showSignupStage('complete');};
 signupPrimary.addEventListener('click',()=>{if(signupStage==='complete')waitlistDialog.close();});
 document.querySelector('#recipient-form').addEventListener('submit',async e=>{
