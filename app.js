@@ -7,9 +7,9 @@ const campaignAttribution={sessionId:funnelSession,audience:document.body.datase
 const FORMSPREE_ENDPOINT='https://formspree.io/f/mbgdkpww';
 function submitToFormspree(fields){const a=campaignAttribution;return fetch(FORMSPREE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({_subject:'Safekeep waitlist: '+(fields.step||'signup'),...fields,page:location.pathname,device:a.device,sessionId:a.sessionId,utm_source:a.source,utm_medium:a.medium,utm_campaign:a.campaign,utm_content:a.content,utm_term:a.term})});}
 function formspreeError(result,fallback){return (result&&result.errors&&result.errors[0]&&result.errors[0].message)||fallback;}
-// Google Ads conversion for a completed waitlist signup (step 1). Paste the conversion label from Google Ads below; nothing is reported while it is blank.
-const GOOGLE_ADS_ID='AW-18507631033',GOOGLE_ADS_SIGNUP_LABEL='';
-function signupConversion(){try{if(window.gtag&&GOOGLE_ADS_SIGNUP_LABEL)window.gtag('event','conversion',{send_to:GOOGLE_ADS_ID+'/'+GOOGLE_ADS_SIGNUP_LABEL});if(window.fbq)window.fbq('track','Lead');}catch{}}
+// Google Ads conversion ("Submit lead form") for a completed waitlist signup (step 1); nothing is reported if the label is blank.
+const GOOGLE_ADS_ID='AW-18507631033',GOOGLE_ADS_SIGNUP_LABEL='ryTyCOacx5kdELmTkPlE';
+function signupConversion(){try{if(window.gtag&&GOOGLE_ADS_SIGNUP_LABEL)window.gtag('event','conversion',{send_to:GOOGLE_ADS_ID+'/'+GOOGLE_ADS_SIGNUP_LABEL,value:1.0,currency:'USD'});if(window.fbq)window.fbq('track','Lead');}catch{}}
 function trackFunnel(event){/* no events endpoint on static hosting */}
 trackFunnel('page_view');
 function toggleTextSize(){const active=document.documentElement.classList.toggle('large-text');const top=document.querySelector('#text-size');top.setAttribute('aria-pressed',active);top.querySelector('span').textContent=active?'Standard text':'Larger text';document.querySelector('[data-text-size]').textContent=active?'Use standard text':'Make text larger';}document.querySelector('#text-size').onclick=toggleTextSize;document.querySelector('[data-text-size]').onclick=toggleTextSize;
