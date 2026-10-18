@@ -1,9 +1,9 @@
 ---
-title: "Move Your Money to a Safe Account": The Phantom Hacker and Gold Courier Scams
-seo_title: Phantom Hacker & Gold Bar Courier Scams Explained | Safekeep
-description: How the phantom hacker scam uses fake tech support, a fake bank, and a fake federal agent to drain savings, why couriers now collect gold, and how to stop it.
+title: The Gold Bar Courier Scam and the "Phantom Hacker": How Scammers Talk People Into Moving Their Savings
+seo_title: Gold Bar Scam & Phantom Hacker Scam Explained | Safekeep
+description: How gold bar courier scams and the phantom hacker scam convince people to move their savings, the warning signs, and what to do if money is gone.
 summary: How the three-step phantom hacker scam talks people into moving their savings, and why some victims are now told to hand cash or gold to a courier.
-keywords: phantom hacker scam, gold bar courier scam, safe account scam, bank impersonation scam, tech support scam seniors
+keywords: gold bar scam, phantom hacker scam, courier scam, safe account scam, bank impersonation scam, tech support scam
 type: Guide
 order: 4
 published: 2026-10-18
@@ -22,9 +22,9 @@ The FBI describes it as a more elaborate version of the old tech support scam, b
 
 **Stage three is a "government agent."** If you hesitate, a third person steps in claiming to be from the FBI, the Federal Reserve, or another agency, sometimes with an official-looking letter. Their job is to reassure you that the plan is legitimate and to keep you from telling anyone.
 
-## Why are couriers now picking up cash and gold?
+## What is the gold bar courier scam?
 
-Wire transfers can sometimes be stopped, and bank tellers have gotten good at asking questions, so scammers have adapted. More and more often they tell people to withdraw cash or buy gold and silver, and then send a courier to collect it at home or in a parking lot. Victims are sometimes given a passcode to confirm the courier, such as the serial number on a dollar bill, which makes the handoff feel more official ([FBI public service announcement](https://www.ic3.gov/PSA/2024/PSA240129)).
+It's the newest ending to the phantom hacker scam and to some grandparent and government-impersonation scams. Wire transfers can sometimes be stopped, and bank tellers have gotten good at asking questions, so scammers have adapted. More and more often they tell people to withdraw cash or buy gold and silver, and then send a courier to collect it at home or in a parking lot. Victims are sometimes given a passcode to confirm the courier, such as the serial number on a dollar bill, which makes the handoff feel more official ([FBI public service announcement](https://www.ic3.gov/PSA/2024/PSA240129)).
 
 Between 2023 and May 2025, the FBI documented at least 1,737 cases nationwide where a courier picked up cash or gold bars, with losses of more than $186.2 million ([FBI Boston](https://www.fbi.gov/contact-us/field-offices/boston/news/fbi-boston-warns-of-increase-in-gold-bar-and-bulk-cash-courier-scams)). The FBI notes that some of the drivers sent to collect the money don't realize they're helping with a crime.
 

@@ -1,9 +1,9 @@
 ---
 title: The AI Voice-Cloning Grandparent Scam: How to Tell If It's Really Your Grandchild
-seo_title: AI Voice Cloning Grandparent Scam: How to Spot It | Safekeep
+seo_title: Voice Cloning Scams & the AI Grandparent Scam | Safekeep
 description: Scammers can copy a grandchild's voice from a short video online. What these calls sound like, and how a family code word helps you check.
 summary: Scammers can now copy a grandchild's voice from a few seconds of video. What these calls sound like, and how families are using a code word to check.
-keywords: grandparent scam AI voice, voice cloning scam, family emergency scam call, family safe word, is this call really my grandson
+keywords: voice cloning scam, grandparent scam, ai voice cloning scam, family emergency scam, family safe word
 type: Guide
 order: 3
 published: 2026-10-18

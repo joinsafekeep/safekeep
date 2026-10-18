@@ -1,9 +1,9 @@
 ---
 title: Scams Targeting Seniors in 2026: What the Latest FBI and FTC Data Show
-seo_title: Scams Targeting Seniors in 2026: FBI & FTC Data | Safekeep
+seo_title: Elderly Scams & Elder Fraud in 2026: FBI Data | Safekeep
 description: Adults 60+ reported $7.75 billion in scam losses to the FBI in 2025, up 59%. Here are the scams doing the most harm and the warning signs they share.
 summary: What the newest FBI and FTC numbers say about scams aimed at older adults, which ones are costing people the most, and how to recognize them.
-keywords: scams targeting seniors, elder fraud statistics 2026, common scams targeting elderly, senior scam warning signs, how to report elder fraud
+keywords: elderly scams, elder fraud, senior scams, scams targeting seniors, elder fraud statistics 2026, scam alerts
 type: Guide
 order: 1
 published: 2026-10-18

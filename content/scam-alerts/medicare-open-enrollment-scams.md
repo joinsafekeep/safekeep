@@ -1,9 +1,9 @@
 ---
-title: Medicare Open Enrollment Scams (Oct 15 to Dec 7, 2026): 6 Calls to Hang Up On
-seo_title: Medicare Open Enrollment Scams 2026: 6 Calls to Hang Up On
+title: Medicare Scam Calls During Open Enrollment (Oct 15 to Dec 7, 2026): 6 to Hang Up On
+seo_title: Medicare Scam Calls: 6 to Hang Up On This Fall | Safekeep
 description: Medicare scam calls spike from Oct 15 to Dec 7. Medicare won't call to confirm your number or send a new card. Six common scams and where to report them.
 summary: Scam calls about Medicare pick up sharply during open enrollment. Six to watch for, and what to do if you've already given out your Medicare number.
-keywords: Medicare scam calls, Medicare open enrollment scams 2026, does Medicare call you, fake Medicare card call, genetic testing scam Medicare
+keywords: medicare scam calls, medicare scams, medicare card scam, does Medicare call you, genetic testing scam, medicare open enrollment scams
 type: Seasonal alert
 order: 5
 published: 2026-10-18

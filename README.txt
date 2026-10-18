@@ -16,7 +16,7 @@ Articles live as markdown in content/scam-alerts/<slug>.md and publish at https:
   python3 scripts/og-images.py      # share image for any new article (needs Playwright)
   node scripts/build-scam-alerts.mjs
 
-Before writing, read content/STYLE.md (house voice and phrases to avoid).
+Before writing, read content/STYLE.md (house voice and phrases to avoid). content/KEYWORDS.md lists the search terms each guide targets and topics worth covering next.
 
 That regenerates scam-alerts/*.html (the index and every article), sitemap.xml and llms.txt. Commit the generated files along with the markdown; Netlify serves them as-is, no build step. Styles for the section are in scam-alerts.css. The header, footer and waitlist dialog are copied from pricing.html on each build, so change those there.
 
