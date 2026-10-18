@@ -65,7 +65,7 @@ h1{{font-family:Caslon;font-weight:400;font-size:{size}px;line-height:1.06;lette
 .url{{margin-top:34px;font-size:22px;color:#5d685e}}
 </style></head><body><div class="band"></div><div class="inner">
 <div class="brand"><span class="mark">s</span>safekeep<span class="dot">.</span></div>
-<p class="label">Scam alerts · {html.escape(label)}</p>
+<p class="label">Scam alerts</p>
 <h1>{html.escape(curly(title))}</h1>
 <p class="url">joinsafekeep.com/scam-alerts</p>
 </div></body></html>"""

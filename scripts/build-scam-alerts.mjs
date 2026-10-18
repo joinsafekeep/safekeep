@@ -220,7 +220,7 @@ const ORG = { '@type': 'Organization', name: 'Safekeep', url: `${SITE}/`, logo: 
 const waitlistCallout = `<section class="waitlist-section"><div class="wrap waitlist-callout"><h2>A little practice.<br>A little more prepared.</h2><p>Help yourself or someone you love stay ready.</p><button class="button" type="button" data-open-waitlist>Join the waitlist <span aria-hidden="true">→</span></button><p class="cta-reassurance">No payment today. Plans from $5/month. No commitment.</p></div></section>`;
 
 function card(a) {
-  return `<li class="alert-card"><p class="alert-card-type">${esc(a.type)}</p><h3><a href="${a.path}">${smartQuotes(esc(a.title))}</a></h3><p>${smartQuotes(esc(a.summary || a.description))}</p><p class="alert-card-meta">${a.weekly ? longDate(a.published) : `Updated ${longDate(a.updated)}`} · ${a.minutes} min read</p></li>`;
+  return `<li class="alert-card"><h3><a href="${a.path}">${smartQuotes(esc(a.title))}</a></h3><p>${smartQuotes(esc(a.summary || a.description))}</p><p class="alert-card-meta">${a.weekly ? longDate(a.published) : `Updated ${longDate(a.updated)}`} · ${a.minutes} min read</p></li>`;
 }
 
 function articlePage(a, all) {
@@ -256,7 +256,7 @@ function articlePage(a, all) {
   const body = `<main id="main" class="scam-alerts-page">
 <nav class="breadcrumbs wrap" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li><a href="/scam-alerts/">Scam alerts</a></li><li aria-current="page">${smartQuotes(esc(a.title))}</li></ol></nav>
 <article class="article wrap">
-<header class="article-header hero-copy"><p class="eyebrow">${esc(a.type.toUpperCase())}</p><h1>${smartQuotes(esc(a.title))}</h1><p class="article-meta">By the Safekeep team · <time datetime="${a.updated}">Updated ${longDate(a.updated)}</time> · ${a.minutes} min read</p></header>
+<header class="article-header hero-copy"><h1>${smartQuotes(esc(a.title))}</h1><p class="article-meta">By the Safekeep team · <time datetime="${a.updated}">Updated ${longDate(a.updated)}</time> · ${a.minutes} min read</p></header>
 <div class="article-body">
 ${a.bodyHtml}
 </div>
@@ -286,7 +286,7 @@ function indexPage(all) {
     },
   ];
   const body = `<main id="main" class="scam-alerts-page">
-<section class="alerts-intro wrap hero-copy"><p class="eyebrow">SCAM ALERTS</p><h1>Scams going around right now, <em>explained.</em></h1><p>What’s being aimed at older adults lately, how to recognize it, and what to do if something has already happened. We add a new alert every week.</p></section>
+<section class="alerts-intro wrap hero-copy"><h1>Scams going around right now, <em>explained.</em></h1><p>What’s being aimed at older adults lately, how to recognize it, and what to do if something has already happened. We add a new alert every week.</p></section>
 ${weekly.length ? `<section class="wrap alerts-list" aria-labelledby="weekly-title"><h2 id="weekly-title">This week’s alerts</h2><ul class="alert-grid">${weekly.slice(0, 6).map(card).join('')}</ul></section>` : ''}
 <section class="wrap alerts-list" aria-labelledby="guides-title"><h2 id="guides-title">Guides</h2><ul class="alert-grid">${guides.map(card).join('')}</ul></section>
 ${weekly.length > 6 ? `<section class="wrap alerts-list" aria-labelledby="archive-title"><h2 id="archive-title">Past weekly alerts</h2><ul class="alert-archive">${weekly.slice(6).map((a) => `<li><a href="${a.path}">${smartQuotes(esc(a.title))}</a> <span>${longDate(a.published)}</span></li>`).join('')}</ul></section>` : ''}
