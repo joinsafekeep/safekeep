@@ -1,8 +1,8 @@
 ---
 title: Scams Targeting Seniors in 2026: What the Latest FBI and FTC Data Show
 seo_title: Scams Targeting Seniors in 2026: FBI & FTC Data | Safekeep
-description: Adults 60+ reported $7.75 billion in scam losses to the FBI in 2025, up 59%. See the scams causing the most harm and the warning signs they share.
-summary: The numbers behind 2026's scam surge, the seven scams older adults face most, and the three warning signs nearly all of them share.
+description: Adults 60+ reported $7.75 billion in scam losses to the FBI in 2025, up 59%. Here are the scams doing the most harm and the warning signs they share.
+summary: What the newest FBI and FTC numbers say about scams aimed at older adults, which ones are costing people the most, and how to recognize them.
 keywords: scams targeting seniors, elder fraud statistics 2026, common scams targeting elderly, senior scam warning signs, how to report elder fraud
 type: Guide
 order: 1
@@ -10,19 +10,19 @@ published: 2026-10-18
 updated: 2026-10-18
 ---
 
-**Quick answer:** In 2025, Americans aged 60 and older reported $7.75 billion in losses to the FBI, a 59% jump in one year and more than any other age group. The scams doing the most damage are fake investments, tech-support and "phantom hacker" schemes, romance scams, and impostors posing as the government, a bank, or a grandchild. Nearly all of them share three warning signs: pressure to act now, a request to keep it secret, and an unusual way to pay.
+**Quick answer:** Americans aged 60 and older told the FBI they lost $7.75 billion to scams in 2025, which is 59% more than the year before and more than any other age group. Most of that money went to fake investment schemes, tech-support and "phantom hacker" scams, romance scams, and people pretending to be from the government, a bank, or the family. Almost all of them push you to act quickly, ask you to keep things quiet, and want to be paid in an unusual way.
 
 ## How much money are older adults losing to scams?
 
-More than ever recorded. Adults 60 and older filed 201,266 complaints with the FBI's Internet Crime Complaint Center (IC3) in 2025 and reported $7.75 billion in losses, up 59% from 2024 ([FBI IC3 2025 report](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf), summarized by [HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)). That is roughly 37% of all reported cybercrime losses nationwide ([CyberScoop](https://cyberscoop.com/fbi-internet-crime-complaint-center-annual-cybercrime-report/)).
+A great deal, and the total is rising quickly. In 2025, people 60 and older filed 201,266 complaints with the FBI's Internet Crime Complaint Center (IC3) and reported $7.75 billion in losses, up 59% from 2024 ([FBI IC3 2025 report](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf), summarized by [HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)). That works out to roughly 37% of all the cybercrime losses reported in the country that year ([CyberScoop](https://cyberscoop.com/fbi-internet-crime-complaint-center-annual-cybercrime-report/)).
 
-The Federal Trade Commission sees the same pattern. Its Consumer Sentinel Network logged a record $15.9 billion in fraud losses across all ages in 2025, and people 50 and older reported $4.3 billion of it ([AARP](https://www.aarp.org/money/scams-fraud/fbi-ftc-report-2025-losses)).
+The Federal Trade Commission's numbers point the same way. Its Consumer Sentinel Network recorded $15.9 billion in fraud losses across all ages in 2025, a record, and people 50 and older accounted for $4.3 billion of it ([AARP](https://www.aarp.org/money/scams-fraud/fbi-ftc-report-2025-losses)).
 
-Reported numbers are only part of the story. Because most victims never report, the FTC estimates the true cost of fraud to older adults in 2024 was somewhere between $10.1 billion and $81.5 billion ([FTC report coverage, Fox Business](https://www.foxbusiness.com/money/older-americans-lost-up-81-5b-past-year-financial-fraud-ftc-report-says)).
+Those figures only count the people who reported what happened, and many don't. Taking that into account, the FTC estimates that fraud actually cost older adults somewhere between $10.1 billion and $81.5 billion in 2024 ([FTC report coverage, Fox Business](https://www.foxbusiness.com/money/older-americans-lost-up-81-5b-past-year-financial-fraud-ftc-report-says)). The range is wide because nobody knows exactly how much goes unreported.
 
 ## Which scams cost older adults the most?
 
-These are the categories with the largest reported losses for people 60 and older in 2025, from the FBI's annual report:
+Here are the categories where people 60 and older reported the largest losses in 2025, according to the FBI's annual report:
 
 | Scam type | Reported losses, age 60+ (2025) |
 | --- | --- |
@@ -31,73 +31,73 @@ These are the categories with the largest reported losses for people 60 and olde
 | Romance and confidence scams | $584 million |
 | Recovery scams ("we can get your money back") | $540 million |
 
-Source: [FBI IC3 2025 report via HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/). Cryptocurrency ran through many of these: seniors filed 42,271 complaints involving crypto, with $4.35 billion in losses.
+Source: [FBI IC3 2025 report via HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/). Cryptocurrency shows up again and again in these cases. Seniors filed 42,271 complaints that involved crypto in some way, with $4.35 billion in losses.
 
 ## What are the most common scams targeting seniors right now?
 
-**1. Fake investment and "pig butchering" scams.** A friendly stranger, often met through a wrong-number text or social media, slowly builds trust and then introduces a "can't-lose" crypto or trading opportunity. The account balance on the fake platform grows until you try to withdraw.
+**Fake investments.** These often start with a text that looks like it was sent to the wrong number, or a friendly message on Facebook. Over weeks or months the stranger becomes a pen pal, and eventually they mention a crypto or trading opportunity that has worked well for them. You're shown an account where your money seems to be growing, right up until you try to take it out. Investigators sometimes call this "pig butchering."
 
-**2. Tech support and the phantom hacker scam.** A pop-up or call says your computer is infected. A fake technician asks for remote access, then a fake bank "fraud department" and a fake government agent convince you to move your savings to "protect" it. Read our full guide to the [phantom hacker and gold courier scams](/scam-alerts/phantom-hacker-gold-courier-scam).
+**Tech support and the phantom hacker scam.** A warning pops up on the computer, or someone calls to say it's been infected. A "technician" asks to connect to your screen to help, and before long a second person claiming to be from your bank, and then a third claiming to be a federal agent, are urging you to move your savings somewhere safe. We go through how this works in our guide to the [phantom hacker and gold courier scams](/scam-alerts/phantom-hacker-gold-courier-scam).
 
-**3. Government and bank impersonation.** Callers claim to be from the FBI, FTC, Social Security, the IRS, or your bank. In a growing number of cases, they send a courier to your door to collect cash or gold bars.
+**Callers pretending to be the government or your bank.** They say they're with the FBI, the FTC, Social Security, the IRS, or your bank's fraud department. More and more of these end with someone showing up at the door to collect cash or gold bars.
 
-**4. The grandparent scam, now with AI voices.** A panicked call from someone who sounds exactly like a grandchild asks for bail or hospital money and begs you not to tell their parents. Criminals can now clone a voice from a short clip online. See [how to tell if it's really your grandchild](/scam-alerts/ai-voice-cloning-grandparent-scam).
+**The grandparent scam.** You get a call from someone who sounds just like your grandchild, upset, saying they've been arrested or hurt and asking you not to tell their parents. Criminals can now copy a person's voice from a short video posted online, so the voice really can sound right. Our article on [how to tell if it's really your grandchild](/scam-alerts/ai-voice-cloning-grandparent-scam) explains what to do.
 
-**5. Romance scams.** A new online companion who can never meet in person eventually needs money for an emergency, a trip, or an investment.
+**Romance scams.** Someone you met online seems kind and attentive but can never quite manage to meet in person. Sooner or later there's an emergency, a plane ticket, or an investment that needs money.
 
-**6. Medicare and health insurance scams.** Calls offering a "new Medicare card," free genetic testing, or a better plan spike during open enrollment, which runs October 15 to December 7. See our [Medicare open enrollment scam guide](/scam-alerts/medicare-open-enrollment-scams).
+**Medicare and health insurance scams.** Calls about a "new Medicare card," free genetic tests, or a better plan get much more frequent during open enrollment, which runs from October 15 to December 7. Our [Medicare open enrollment guide](/scam-alerts/medicare-open-enrollment-scams) covers the common ones.
 
-**7. Text message scams.** Fake texts about an unpaid toll, a package that needs a small redelivery fee, or a locked bank account push you to a convincing look-alike website that steals your card details.
+**Text message scams.** You get a text about an unpaid toll, a package waiting on a small redelivery fee, or a problem with your bank account. The link leads to a website that looks real and asks for your card number.
 
 ## How is AI changing scams against older adults?
 
-AI makes old scams more convincing. The FBI received more than 3,100 complaints from seniors that referenced AI in 2025, with losses above $352 million ([HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)). The most common uses are cloned voices of family members, deepfake videos of celebrities endorsing investments, and phishing emails with no telltale spelling mistakes. The practical takeaway: a familiar voice or a polished message is no longer proof of anything.
+It's making familiar scams harder to spot. The FBI received more than 3,100 complaints from seniors in 2025 that mentioned AI, with losses above $352 million ([HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)). Scammers are using it to copy family members' voices, to make fake videos of celebrities recommending investments, and to write emails without the clumsy spelling and grammar that used to give them away. So if a voice sounds familiar or an email looks professional, that alone doesn't tell you much anymore.
 
-## What warning signs do almost all scams share?
+## What warning signs do most scams have in common?
 
-Scams change their stories constantly, but their requests barely change. Be suspicious of any message, call, or visitor that:
+The stories change all the time, but what the scammer eventually asks you to do tends to look similar. It's worth slowing down if a call, message, or visitor:
 
-- **Rushes you.** "Act now," "within the hour," "before it's too late."
-- **Asks for secrecy.** "Don't tell your bank," "don't tell Mom," "this is a confidential investigation."
-- **Wants an unusual payment.** Gift cards, cryptocurrency, a crypto ATM, a wire transfer, cash, or gold.
-- **Asks you to move money to keep it safe.** No real bank or government agency will ever ask this.
-- **Wants control of your device.** Requests to download software or read back a verification code.
-- **Contacted you first.** Unexpected calls, texts, emails, and pop-ups deserve the most skepticism.
+- Pushes you to act right away, or says something terrible will happen if you wait.
+- Asks you to keep it a secret from your bank, your family, or anyone else.
+- Wants to be paid with gift cards, cryptocurrency, a Bitcoin ATM, a wire transfer, cash, or gold.
+- Tells you to move your money somewhere to keep it safe. A real bank or government agency won't ask you to do that.
+- Asks you to install something on your computer or read back a code that was texted to you.
+- Reached out to you first, out of the blue.
 
-**Practice spotting these signs before it counts.** Safekeep's planned weekly simulations send realistic scam texts, emails, and calls, with plain-language feedback after each one. [Join the free waitlist](#waitlist).
+**It's easier to notice these signs if you've seen them before.** Safekeep is planning weekly practice scams by text, email, and phone, each followed by a short explanation of what to look for. [Join the free waitlist](#waitlist).
 
 ## What should you do if you think you've been scammed?
 
-Act fast and without embarrassment. Speed matters: in 2025 the FBI's Recovery Asset Team froze $32.9 million of the $65.4 million in elder-fraud losses it was alerted to through its Financial Fraud Kill Chain ([HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)).
+Try not to let embarrassment slow you down, because acting quickly can make a real difference. In 2025 the FBI's Recovery Asset Team was able to freeze $32.9 million of the $65.4 million in elder-fraud losses that were reported to it fast enough to act on ([HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)).
 
-1. **Stop all contact** and do not send any more money.
-2. **Call your bank or card company** using the number on your card or statement. Ask them to stop or recall the payment.
-3. **Report to the FBI** at [ic3.gov](https://www.ic3.gov/) and to the FTC at [ReportFraud.ftc.gov](https://reportfraud.ftc.gov/).
-4. **Call the National Elder Fraud Hotline** at 1-833-FRAUD-11 (1-833-372-8311), run by the U.S. Department of Justice, for free help filing reports ([DOJ](https://www.justice.gov/usao-or/pr/department-justice-charges-unprecedented-number-elder-fraud-defendants-nationwide-and)).
-5. **File a police report** and keep copies of every message, receipt, and phone number.
-6. **Watch for recovery scams.** Anyone who contacts you offering to get your money back for a fee is almost certainly a second scam.
+1. Stop answering the scammer and don't send anything else.
+2. Call your bank or card company, using the phone number on your card or statement, and ask whether the payment can be stopped or recalled.
+3. Report it to the FBI at [ic3.gov](https://www.ic3.gov/) and to the FTC at [ReportFraud.ftc.gov](https://reportfraud.ftc.gov/).
+4. If you'd like help with the reports, call the National Elder Fraud Hotline at 1-833-FRAUD-11 (1-833-372-8311). It's free and run by the U.S. Department of Justice ([DOJ](https://www.justice.gov/usao-or/pr/department-justice-charges-unprecedented-number-elder-fraud-defendants-nationwide-and)).
+5. File a police report, and keep copies of messages, receipts, and phone numbers.
+6. Be wary of anyone who contacts you afterward offering to recover your money for a fee. That's a common second scam aimed at people who've just lost money.
 
 ## Frequently asked questions
 
 ### What is the most common scam targeting seniors?
 
-By reported dollars, investment fraud is the largest, costing adults 60+ $3.52 billion in 2025 according to the FBI. By sheer volume of calls and texts, impostor scams (fake government agents, banks, tech support, and family members) are the ones older adults encounter most often.
+If you go by dollars lost, investment fraud is the biggest, costing people 60 and older $3.52 billion in 2025 according to the FBI. If you go by how often people are contacted, impostor scams come up most: callers pretending to be from the government, a bank, tech support, or the family.
 
 ### Why do scammers target older adults?
 
-Older adults are more likely to have savings, home equity, and retirement accounts, and many were raised to answer the phone and trust authority. Scammers also know that older victims report losses less often, often out of embarrassment.
+Older adults are more likely to have savings, a paid-off home, or retirement accounts, and many grew up answering the phone politely and trusting people in authority. Scammers also know older victims report less often, usually because they feel embarrassed.
 
 ### Will my bank ever ask me to move money to a "safe account"?
 
-No. Banks, the FBI, the FTC, and Social Security will never ask you to move money to protect it, buy gold, or pay with gift cards or crypto. Anyone who does is a scammer.
+No. Your bank, the FBI, the FTC, and Social Security won't ask you to move money to protect it, buy gold, or pay with gift cards or crypto. If someone does, you can hang up.
 
 ### Can I get my money back after a scam?
 
-Sometimes, if you act quickly. Report to your bank and to ic3.gov right away, because funds can occasionally be frozen before they disappear. Never pay anyone who promises to recover your money.
+Sometimes, especially if you report it quickly. Call your bank and file at ic3.gov as soon as you can, since money can occasionally be frozen before it's gone for good. Don't pay anyone who promises to get it back for you.
 
 ### How can I protect a parent from scams without taking away their independence?
 
-Start with a calm conversation, agree on a family code word, and practice spotting warning signs together. Our [guide for adult children](/scam-alerts/how-to-protect-elderly-parents-from-scams) walks through it step by step.
+Most families start with a relaxed conversation, agree on a family code word, and look at a few example scams together. Our [guide for adult children](/scam-alerts/how-to-protect-elderly-parents-from-scams) walks through it.
 
 ## Sources
 

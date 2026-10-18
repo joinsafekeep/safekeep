@@ -15,6 +15,8 @@ Articles live as markdown in content/scam-alerts/<slug>.md and publish at https:
 
   node scripts/build-scam-alerts.mjs
 
+Before writing, read content/STYLE.md (house voice and phrases to avoid).
+
 That regenerates scam-alerts/*.html (the index and every article), sitemap.xml and llms.txt. Commit the generated files along with the markdown; Netlify serves them as-is, no build step. Styles for the section are in scam-alerts.css. The header, footer and waitlist dialog are copied from pricing.html on each build, so change those there.
 
 Front matter: title, seo_title (<= 60 chars), description (150-155 chars), summary (index card), keywords, type ("Guide", "Seasonal alert", or "Weekly alert" for the weekly posts), order (optional sort among same-date guides), published and updated (YYYY-MM-DD), draft: true to hold a file back. Under "## Frequently asked questions", each "### Question" heading plus the paragraph after it becomes FAQ schema. Link to [Join the free waitlist](#waitlist) to open the signup dialog.
