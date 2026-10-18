@@ -20,11 +20,11 @@ Many people started getting these calls well before enrollment opened. By late A
 
 ## What are the most common Medicare scam calls?
 
-**1. "We need to confirm your Medicare number."** Medicare already has your number, and it won't call, text, or email asking you to confirm it ([Scripps News](https://www.scrippsnews.com/dont-waste-your-money/they-call-15-times-a-day-seniors-inundated-with-medicare-calls-ahead-of-open-enrollment)). A thief can do a lot with that number, including billing Medicare for care you never got, so it deserves the same caution as your Social Security number.
+**1. "We need to confirm your Medicare number."** Medicare already has your number, and it won't call, text, or email asking you to confirm it ([Scripps News](https://www.scrippsnews.com/dont-waste-your-money/they-call-15-times-a-day-seniors-inundated-with-medicare-calls-ahead-of-open-enrollment)). Medicare's own advice is to give your Medicare number only to your doctor or others you know should have it ([Medicare.gov](https://www.medicare.gov/basics/reporting-medicare-fraud-and-abuse)). A thief can do a lot with that number, including billing Medicare for care you never got, so it deserves the same caution as your Social Security number.
 
 **2. "Your new or upgraded Medicare card is ready."** If someone calls offering a new, plastic, or "upgraded" card, be suspicious. There's no fee for a Medicare card and no phone call needed to get one.
 
-**3. A "free" genetic test or cheek swab.** These offers come by phone, at health fairs, and sometimes at the front door. What the scammer is really after is your Medicare number, so they can bill for expensive tests you didn't need ([MedicareFAQ](https://www.medicarefaq.com/blog/7-medicare-scams-targeting-seniors/)).
+**3. A "free" genetic test or cheek swab.** These offers come by phone, at health fairs, and sometimes at the front door. What the scammer is really after is your Medicare number, so they can bill for expensive tests you didn't need. If Medicare denies the claim, you could be billed for the full cost, which can run to thousands of dollars ([HHS Office of Inspector General](https://oig.hhs.gov/fraud/consumer-alerts/fraud-alert-genetic-testing-scam/)).
 
 **4. A "free" brace, device, or "Medicare kit."** Calls and texts offering a free back brace, knee brace, or medical kit are a common cover for billing fraud. More than 40 health systems recently warned their patients about a fake "MyChart Medicare Kit" message going around ([Scripps News, citing Becker's Healthcare](https://www.scrippsnews.com/dont-waste-your-money/they-call-15-times-a-day-seniors-inundated-with-medicare-calls-ahead-of-open-enrollment)). If you need medical equipment, your own doctor will order it for you.
 
@@ -54,7 +54,7 @@ For other scams going around this fall, see [Scams Targeting Seniors in 2026](/s
 
 ### Does Medicare ever call you?
 
-Medicare generally won't call you unless you've asked it to, and it won't call to confirm your Medicare number or to sell you a plan. If you're not sure about a call, hang up and dial 1-800-MEDICARE yourself.
+Medicare says it will never call you to sell you anything or come to your home, and it only asks for personal information in limited cases, like returning a call you made. It won't call to confirm your Medicare number. If you're not sure about a call, hang up and dial 1-800-MEDICARE yourself.
 
 ### When is Medicare open enrollment for 2027 coverage?
 
@@ -76,6 +76,6 @@ Register your number at donotcall.gov, avoid pressing any buttons to "opt out," 
 
 - [TheStreet: Medicare scam calls spike as open enrollment begins (Oct 18, 2026)](https://thestreet.com/personal-finance/medicare-scam-calls-open-enrollment-2026)
 - [Scripps News: Seniors inundated with Medicare calls ahead of open enrollment](https://www.scrippsnews.com/dont-waste-your-money/they-call-15-times-a-day-seniors-inundated-with-medicare-calls-ahead-of-open-enrollment)
-- [MedicareFAQ: Medicare scams targeting seniors in 2026](https://www.medicarefaq.com/blog/7-medicare-scams-targeting-seniors/)
-- [Medicare.gov](https://www.medicare.gov/)
+- [Medicare.gov: Reporting Medicare fraud and abuse](https://www.medicare.gov/basics/reporting-medicare-fraud-and-abuse)
+- [HHS Office of Inspector General: Genetic testing scam](https://oig.hhs.gov/fraud/consumer-alerts/fraud-alert-genetic-testing-scam/)
 - [Senior Medicare Patrol](https://smpresource.org/)

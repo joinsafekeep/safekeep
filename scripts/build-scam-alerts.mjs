@@ -3,6 +3,8 @@
 //
 //   node scripts/build-scam-alerts.mjs
 //
+// Run scripts/og-images.py first to make share images for new articles.
+//
 // Writes:
 //   scam-alerts/index.html        -> https://joinsafekeep.com/scam-alerts/
 //   scam-alerts/<slug>.html       -> https://joinsafekeep.com/scam-alerts/<slug>
@@ -190,6 +192,8 @@ function parseArticle(file) {
     weekly: /weekly/i.test(meta.type || ''),
     draft: /^(true|yes)$/i.test(meta.draft || ''),
     minutes: Math.max(1, Math.round(words / 220)),
+    // Share image from scripts/og-images.py, or the homepage photo if there isn't one yet.
+    image: existsSync(join(ROOT, 'og', `${slug}.png`)) ? `${SITE}/og/${slug}.png` : SHARE_IMAGE,
     bodyHtml: blocksToHtml(blocks),
     faq,
   };
@@ -205,9 +209,9 @@ const chromeBottom = pricing.slice(pricing.indexOf('</main>') + '</main>'.length
 if (!chromeTop.includes('<header') || !chromeBottom.includes('/app.js')) throw new Error('Could not read the header/footer from pricing.html');
 const markCurrent = (html) => html.replace(/<a href="\/scam-alerts\/">/g, '<a href="/scam-alerts/" aria-current="page">');
 
-function page({ title, description, canonical, ogType = 'website', ld, body }) {
+function page({ title, description, canonical, ogType = 'website', image = SHARE_IMAGE, imageAlt = SHARE_IMAGE_ALT, ld, body }) {
   return `<!doctype html>
-<html lang="en"><head>${gtag}<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${esc(title)}</title><meta name="description" content="${attr(description)}"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/scam-alerts.css"><link rel="canonical" href="${attr(canonical)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:type" content="${ogType}"><meta property="og:site_name" content="Safekeep"><meta property="og:title" content="${attr(title)}"><meta property="og:description" content="${attr(description)}"><meta property="og:url" content="${attr(canonical)}"><meta property="og:image" content="${SHARE_IMAGE}"><meta property="og:image:alt" content="${attr(SHARE_IMAGE_ALT)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${attr(title)}"><meta name="twitter:description" content="${attr(description)}"><meta name="twitter:image" content="${SHARE_IMAGE}"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary">${ld.map(jsonLd).join('')}</head>${bodyTag}
+<html lang="en"><head>${gtag}<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${esc(title)}</title><meta name="description" content="${attr(description)}"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/scam-alerts.css"><link rel="canonical" href="${attr(canonical)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:type" content="${ogType}"><meta property="og:site_name" content="Safekeep"><meta property="og:title" content="${attr(title)}"><meta property="og:description" content="${attr(description)}"><meta property="og:url" content="${attr(canonical)}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="${attr(imageAlt)}">${image === SHARE_IMAGE ? '' : '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'}<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${attr(title)}"><meta name="twitter:description" content="${attr(description)}"><meta name="twitter:image" content="${image}"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary">${ld.map(jsonLd).join('')}</head>${bodyTag}
 ${markCurrent(chromeTop)}${body}${markCurrent(chromeBottom)}`;
 }
 
@@ -230,7 +234,7 @@ function articlePage(a, all) {
       datePublished: a.published,
       dateModified: a.updated,
       inLanguage: 'en-US',
-      image: SHARE_IMAGE,
+      image: a.image,
       keywords: a.keywords || undefined,
       author: { '@type': 'Organization', name: 'The Safekeep team', url: `${SITE}/#about` },
       publisher: ORG,
@@ -262,7 +266,7 @@ ${a.bodyHtml}
 ${related.length ? `<section class="related wrap" aria-labelledby="related-title"><h2 id="related-title">More scam alerts</h2><ul class="alert-grid">${related.map(card).join('')}</ul><p><a href="/scam-alerts/">See all scam alerts →</a></p></section>` : ''}
 ${waitlistCallout}
 </main>`;
-  return page({ title: a.seo_title || `${a.title} | Safekeep`, description: a.description, canonical: a.url, ogType: 'article', ld, body });
+  return page({ title: a.seo_title || `${a.title} | Safekeep`, description: a.description, canonical: a.url, ogType: 'article', image: a.image, imageAlt: a.image === SHARE_IMAGE ? SHARE_IMAGE_ALT : a.title, ld, body });
 }
 
 function indexPage(all) {

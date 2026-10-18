@@ -13,6 +13,7 @@ UPDATE (Oct 11, 2026): Waitlist signups now post to Formspree (form "Safekeep Wa
 SCAM ALERTS (added Oct 18, 2026)
 Articles live as markdown in content/scam-alerts/<slug>.md and publish at https://joinsafekeep.com/scam-alerts/<slug>. After adding or editing one, run:
 
+  python3 scripts/og-images.py      # share image for any new article (needs Playwright)
   node scripts/build-scam-alerts.mjs
 
 Before writing, read content/STYLE.md (house voice and phrases to avoid).

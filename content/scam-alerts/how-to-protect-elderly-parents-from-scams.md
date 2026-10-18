@@ -1,7 +1,7 @@
 ---
 title: How to Protect Elderly Parents From Scams: A Guide for Adult Children
-seo_title: How to Protect Elderly Parents From Scams (2026 Guide) | Safekeep
-description: A step-by-step guide to helping an aging parent avoid scams while respecting their independence: the conversation, a family code word, bank safeguards, and more.
+seo_title: How to Protect Elderly Parents From Scams | Safekeep
+description: Help an aging parent avoid scams without taking over: how to start the conversation, set a family code word, and add simple bank safeguards.
 summary: Practical steps for helping an aging parent avoid scams while respecting their independence, plus signs that a parent may already be targeted.
 keywords: how to protect elderly parents from scams, elderly parent scammed what to do, signs a parent is being scammed, trusted contact person, family code word
 type: Guide for families
@@ -14,7 +14,7 @@ updated: 2026-10-18
 
 ## Why do aging parents need extra protection now?
 
-Losses among older adults have climbed steeply, and the scams themselves have gotten more convincing. People 60 and older reported $7.75 billion in losses to the FBI in 2025, up 59% in a single year ([HousingWire, summarizing the FBI IC3 report](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)). Interestingly, older adults report losing money less often than younger people do, but when they lose money they tend to lose more. People 80 and older reported a median loss above $1,600, the highest of any age group ([ABC17 News, citing FTC data](https://abc17news.com/stacker-financial-protection/2026/10/12/the-scams-targeting-you-most-by-age-group/)).
+Losses among older adults have climbed steeply, and the scams themselves have gotten more convincing. People 60 and older reported $7.75 billion in losses to the FBI in 2025, up 59% in a single year ([FBI IC3 2025 report, p. 44](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf#page=44)). Interestingly, older adults report losing money less often than younger people do, but when they lose money they tend to lose more. In 2024, people 80 and older who reported a loss to the FTC lost a median of $1,650 ([FTC, Protecting Older Consumers 2024–2025, p. 22](https://www.ftc.gov/system/files/ftc_gov/pdf/P144400-OlderAdultsReportDec2025.pdf#page=22)).
 
 AI has also made some of the old warning signs less reliable. Scammers can now copy a grandchild's voice, write emails with perfect grammar, and make caller ID show a familiar number. Even very sharp people get fooled, so it helps to have a plan worked out in advance.
 
@@ -78,7 +78,7 @@ Start by reassuring them. Something like, "This happens to smart, careful people
 1. Stop all contact with the scammer and don't send anything else.
 2. Call the bank or card company, using the number on the card.
 3. Report it to the FBI at [ic3.gov](https://www.ic3.gov/) and to the FTC at [ReportFraud.ftc.gov](https://reportfraud.ftc.gov/).
-4. Call the National Elder Fraud Hotline at 1-833-FRAUD-11 (1-833-372-8311) for free help with the reports ([U.S. DOJ](https://www.justice.gov/usao-or/pr/department-justice-charges-unprecedented-number-elder-fraud-defendants-nationwide-and)).
+4. Call the National Elder Fraud Hotline at 1-833-FRAUD-11 (1-833-372-8311) for free help with the reports ([Office for Victims of Crime](https://ovc.ojp.gov/program/stop-elder-fraud/faqs)).
 5. Freeze their credit, change passwords, and have any computer that a scammer accessed checked out.
 6. Let them know that anyone who calls offering to get the money back for a fee is almost certainly running another scam.
 
@@ -108,7 +108,7 @@ Nothing can guarantee someone won't be fooled. Practicing what to do when the pr
 
 ## Sources
 
-- [HousingWire: FBI report on seniors and cybercrime in 2025](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)
-- [ABC17 News: The scams targeting you most, by age group](https://abc17news.com/stacker-financial-protection/2026/10/12/the-scams-targeting-you-most-by-age-group/)
+- [FBI IC3, 2025 Internet Crime Report (PDF)](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf)
+- [FTC: Protecting Older Consumers 2024–2025 (PDF)](https://www.ftc.gov/system/files/ftc_gov/pdf/P144400-OlderAdultsReportDec2025.pdf)
 - [KESQ: How to prevent elder fraud and financial abuse (Oct 18, 2026)](https://kesq.com/news/2026/10/18/how-to-prevent-elder-fraud-and-financial-abuse/)
-- [U.S. DOJ: National Elder Fraud Hotline](https://www.justice.gov/usao-or/pr/department-justice-charges-unprecedented-number-elder-fraud-defendants-nationwide-and)
+- [U.S. DOJ Office for Victims of Crime: National Elder Fraud Hotline](https://ovc.ojp.gov/program/stop-elder-fraud/faqs)
