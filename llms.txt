@@ -1,0 +1,20 @@
+# Safekeep
+
+> Safekeep is a planned monthly subscription that helps older adults recognize scams through weekly simulated scam texts, emails, and phone calls, with plain-language feedback after each one and a monthly progress report shared with family members they choose. It is scam-awareness education and does not access bank accounts. Plans start at $5/month; enrollment is opening soon via a free waitlist.
+
+## Product
+
+- [Home](https://joinsafekeep.com/): how the weekly simulations and monthly family reports work
+- [Pricing](https://joinsafekeep.com/pricing): Individual, Pairs, and Family plans
+
+## Scam alerts
+
+- [Scams Targeting Seniors in 2026: What the Latest FBI and FTC Data Show](https://joinsafekeep.com/scam-alerts/scams-targeting-seniors-2026): Adults 60+ reported $7.75 billion in scam losses to the FBI in 2025, up 59%. See the scams causing the most harm and the warning signs they share.
+- [How to Protect Elderly Parents From Scams: A Guide for Adult Children](https://joinsafekeep.com/scam-alerts/how-to-protect-elderly-parents-from-scams): A step-by-step guide to protecting aging parents from scams without taking away their independence: the talk, a family code word, bank safeguards, and more.
+- [The AI Voice-Cloning Grandparent Scam: How to Tell If It's Really Your Grandchild](https://joinsafekeep.com/scam-alerts/ai-voice-cloning-grandparent-scam): Scammers can now copy a grandchild's voice from a short online clip. Learn the warning signs and the one question that stops a fake emergency call.
+- ["Move Your Money to a Safe Account": The Phantom Hacker and Gold Courier Scams](https://joinsafekeep.com/scam-alerts/phantom-hacker-gold-courier-scam): Fake tech support, a fake bank, then a fake federal agent: how the phantom hacker scam drains savings, why couriers collect gold, and how to stop it.
+- [Medicare Open Enrollment Scams (Oct 15 to Dec 7, 2026): 6 Calls to Hang Up On](https://joinsafekeep.com/scam-alerts/medicare-open-enrollment-scams): Medicare scam calls spike Oct 15 to Dec 7. Medicare won't call to confirm your number or send a new card. Six scams to spot and where to report them.
+
+## If you think you've been scammed (U.S.)
+
+- Call your bank using the number on your card, report at https://www.ic3.gov/ and https://reportfraud.ftc.gov/, and call the National Elder Fraud Hotline at 1-833-372-8311.
