@@ -3,6 +3,8 @@
 //
 //   node scripts/build-scam-alerts.mjs
 //
+// Run scripts/og-images.py first to make share images for new articles.
+//
 // Writes:
 //   scam-alerts/index.html        -> https://joinsafekeep.com/scam-alerts/
 //   scam-alerts/<slug>.html       -> https://joinsafekeep.com/scam-alerts/<slug>
@@ -190,6 +192,8 @@ function parseArticle(file) {
     weekly: /weekly/i.test(meta.type || ''),
     draft: /^(true|yes)$/i.test(meta.draft || ''),
     minutes: Math.max(1, Math.round(words / 220)),
+    // Share image from scripts/og-images.py, or the homepage photo if there isn't one yet.
+    image: existsSync(join(ROOT, 'og', `${slug}.png`)) ? `${SITE}/og/${slug}.png` : SHARE_IMAGE,
     bodyHtml: blocksToHtml(blocks),
     faq,
   };
@@ -205,9 +209,9 @@ const chromeBottom = pricing.slice(pricing.indexOf('</main>') + '</main>'.length
 if (!chromeTop.includes('<header') || !chromeBottom.includes('/app.js')) throw new Error('Could not read the header/footer from pricing.html');
 const markCurrent = (html) => html.replace(/<a href="\/scam-alerts\/">/g, '<a href="/scam-alerts/" aria-current="page">');
 
-function page({ title, description, canonical, ogType = 'website', ld, body }) {
+function page({ title, description, canonical, ogType = 'website', image = SHARE_IMAGE, imageAlt = SHARE_IMAGE_ALT, ld, body }) {
   return `<!doctype html>
-<html lang="en"><head>${gtag}<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${esc(title)}</title><meta name="description" content="${attr(description)}"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/scam-alerts.css"><link rel="canonical" href="${attr(canonical)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:type" content="${ogType}"><meta property="og:site_name" content="Safekeep"><meta property="og:title" content="${attr(title)}"><meta property="og:description" content="${attr(description)}"><meta property="og:url" content="${attr(canonical)}"><meta property="og:image" content="${SHARE_IMAGE}"><meta property="og:image:alt" content="${attr(SHARE_IMAGE_ALT)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${attr(title)}"><meta name="twitter:description" content="${attr(description)}"><meta name="twitter:image" content="${SHARE_IMAGE}"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary">${ld.map(jsonLd).join('')}</head>${bodyTag}
+<html lang="en"><head>${gtag}<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${esc(title)}</title><meta name="description" content="${attr(description)}"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/scam-alerts.css"><link rel="canonical" href="${attr(canonical)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:type" content="${ogType}"><meta property="og:site_name" content="Safekeep"><meta property="og:title" content="${attr(title)}"><meta property="og:description" content="${attr(description)}"><meta property="og:url" content="${attr(canonical)}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="${attr(imageAlt)}">${image === SHARE_IMAGE ? '' : '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'}<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${attr(title)}"><meta name="twitter:description" content="${attr(description)}"><meta name="twitter:image" content="${image}"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary">${ld.map(jsonLd).join('')}</head>${bodyTag}
 ${markCurrent(chromeTop)}${body}${markCurrent(chromeBottom)}`;
 }
 
@@ -216,7 +220,7 @@ const ORG = { '@type': 'Organization', name: 'Safekeep', url: `${SITE}/`, logo: 
 const waitlistCallout = `<section class="waitlist-section"><div class="wrap waitlist-callout"><h2>A little practice.<br>A little more prepared.</h2><p>Help yourself or someone you love stay ready.</p><button class="button" type="button" data-open-waitlist>Join the waitlist <span aria-hidden="true">→</span></button><p class="cta-reassurance">No payment today. Plans from $5/month. No commitment.</p></div></section>`;
 
 function card(a) {
-  return `<li class="alert-card"><p class="alert-card-type">${esc(a.type)}</p><h3><a href="${a.path}">${smartQuotes(esc(a.title))}</a></h3><p>${smartQuotes(esc(a.summary || a.description))}</p><p class="alert-card-meta">${a.weekly ? longDate(a.published) : `Updated ${longDate(a.updated)}`} · ${a.minutes} min read</p></li>`;
+  return `<li class="alert-card"><h3><a href="${a.path}">${smartQuotes(esc(a.title))}</a></h3><p>${smartQuotes(esc(a.summary || a.description))}</p><p class="alert-card-meta">${a.weekly ? longDate(a.published) : `Updated ${longDate(a.updated)}`} · ${a.minutes} min read</p></li>`;
 }
 
 function articlePage(a, all) {
@@ -230,7 +234,7 @@ function articlePage(a, all) {
       datePublished: a.published,
       dateModified: a.updated,
       inLanguage: 'en-US',
-      image: SHARE_IMAGE,
+      image: a.image,
       keywords: a.keywords || undefined,
       author: { '@type': 'Organization', name: 'The Safekeep team', url: `${SITE}/#about` },
       publisher: ORG,
@@ -252,7 +256,7 @@ function articlePage(a, all) {
   const body = `<main id="main" class="scam-alerts-page">
 <nav class="breadcrumbs wrap" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li><a href="/scam-alerts/">Scam alerts</a></li><li aria-current="page">${smartQuotes(esc(a.title))}</li></ol></nav>
 <article class="article wrap">
-<header class="article-header hero-copy"><p class="eyebrow">${esc(a.type.toUpperCase())}</p><h1>${smartQuotes(esc(a.title))}</h1><p class="article-meta">By the Safekeep team · <time datetime="${a.updated}">Updated ${longDate(a.updated)}</time> · ${a.minutes} min read</p></header>
+<header class="article-header hero-copy"><h1>${smartQuotes(esc(a.title))}</h1><p class="article-meta">By the Safekeep team · <time datetime="${a.updated}">Updated ${longDate(a.updated)}</time> · ${a.minutes} min read</p></header>
 <div class="article-body">
 ${a.bodyHtml}
 </div>
@@ -262,7 +266,7 @@ ${a.bodyHtml}
 ${related.length ? `<section class="related wrap" aria-labelledby="related-title"><h2 id="related-title">More scam alerts</h2><ul class="alert-grid">${related.map(card).join('')}</ul><p><a href="/scam-alerts/">See all scam alerts →</a></p></section>` : ''}
 ${waitlistCallout}
 </main>`;
-  return page({ title: a.seo_title || `${a.title} | Safekeep`, description: a.description, canonical: a.url, ogType: 'article', ld, body });
+  return page({ title: a.seo_title || `${a.title} | Safekeep`, description: a.description, canonical: a.url, ogType: 'article', image: a.image, imageAlt: a.image === SHARE_IMAGE ? SHARE_IMAGE_ALT : a.title, ld, body });
 }
 
 function indexPage(all) {
@@ -282,7 +286,7 @@ function indexPage(all) {
     },
   ];
   const body = `<main id="main" class="scam-alerts-page">
-<section class="alerts-intro wrap hero-copy"><p class="eyebrow">SCAM ALERTS</p><h1>Scams going around right now, <em>explained.</em></h1><p>What’s being aimed at older adults lately, how to recognize it, and what to do if something has already happened. We add a new alert every week.</p></section>
+<section class="alerts-intro wrap hero-copy"><h1>Scams going around right now, <em>explained.</em></h1><p>What’s being aimed at older adults lately, how to recognize it, and what to do if something has already happened. We add a new alert every week.</p></section>
 ${weekly.length ? `<section class="wrap alerts-list" aria-labelledby="weekly-title"><h2 id="weekly-title">This week’s alerts</h2><ul class="alert-grid">${weekly.slice(0, 6).map(card).join('')}</ul></section>` : ''}
 <section class="wrap alerts-list" aria-labelledby="guides-title"><h2 id="guides-title">Guides</h2><ul class="alert-grid">${guides.map(card).join('')}</ul></section>
 ${weekly.length > 6 ? `<section class="wrap alerts-list" aria-labelledby="archive-title"><h2 id="archive-title">Past weekly alerts</h2><ul class="alert-archive">${weekly.slice(6).map((a) => `<li><a href="${a.path}">${smartQuotes(esc(a.title))}</a> <span>${longDate(a.published)}</span></li>`).join('')}</ul></section>` : ''}

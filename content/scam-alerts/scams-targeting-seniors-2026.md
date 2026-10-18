@@ -1,9 +1,9 @@
 ---
 title: Scams Targeting Seniors in 2026: What the Latest FBI and FTC Data Show
-seo_title: Scams Targeting Seniors in 2026: FBI & FTC Data | Safekeep
+seo_title: Elderly Scams & Elder Fraud in 2026: FBI Data | Safekeep
 description: Adults 60+ reported $7.75 billion in scam losses to the FBI in 2025, up 59%. Here are the scams doing the most harm and the warning signs they share.
 summary: What the newest FBI and FTC numbers say about scams aimed at older adults, which ones are costing people the most, and how to recognize them.
-keywords: scams targeting seniors, elder fraud statistics 2026, common scams targeting elderly, senior scam warning signs, how to report elder fraud
+keywords: elderly scams, elder fraud, senior scams, scams targeting seniors, elder fraud statistics 2026, scam alerts
 type: Guide
 order: 1
 published: 2026-10-18
@@ -14,11 +14,11 @@ updated: 2026-10-18
 
 ## How much money are older adults losing to scams?
 
-A great deal, and the total is rising quickly. In 2025, people 60 and older filed 201,266 complaints with the FBI's Internet Crime Complaint Center (IC3) and reported $7.75 billion in losses, up 59% from 2024 ([FBI IC3 2025 report](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf), summarized by [HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)). That works out to roughly 37% of all the cybercrime losses reported in the country that year ([CyberScoop](https://cyberscoop.com/fbi-internet-crime-complaint-center-annual-cybercrime-report/)).
+A great deal, and the total is rising quickly. In 2025, people 60 and older filed 201,266 complaints with the FBI's Internet Crime Complaint Center (IC3) and reported $7.75 billion in losses, up 59% from 2024. Of those, 12,444 people said they had lost more than $100,000 each ([FBI IC3 2025 report, p. 44](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf#page=44)). Compared with the $20.9 billion in losses the FBI recorded across all ages, older adults accounted for roughly 37% of the total ([same report, p. 6](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf#page=6)).
 
-The Federal Trade Commission's numbers point the same way. Its Consumer Sentinel Network recorded $15.9 billion in fraud losses across all ages in 2025, a record, and people 50 and older accounted for $4.3 billion of it ([AARP](https://www.aarp.org/money/scams-fraud/fbi-ftc-report-2025-losses)).
+The Federal Trade Commission's numbers point the same way. People reported $15.9 billion in fraud losses to its Consumer Sentinel Network in 2025 across all ages ([FTC](https://www.ftc.gov/news-events/news/press-releases/2026/03/ftc-testifies-joint-economic-committee-agencys-efforts-combat-fraud)), and by AARP's count of that data, people 50 and older accounted for $4.3 billion of it ([AARP](https://www.aarp.org/money/scams-fraud/fbi-ftc-report-2025-losses)).
 
-Those figures only count the people who reported what happened, and many don't. Taking that into account, the FTC estimates that fraud actually cost older adults somewhere between $10.1 billion and $81.5 billion in 2024 ([FTC report coverage, Fox Business](https://www.foxbusiness.com/money/older-americans-lost-up-81-5b-past-year-financial-fraud-ftc-report-says)). The range is wide because nobody knows exactly how much goes unreported.
+Those figures only count the people who reported what happened, and many don't. Taking that into account, the FTC estimates that fraud actually cost older adults somewhere between $10.1 billion and $81.5 billion in 2024 ([FTC, Protecting Older Consumers 2024–2025, p. 3](https://www.ftc.gov/system/files/ftc_gov/pdf/P144400-OlderAdultsReportDec2025.pdf#page=3)). The range is wide because nobody knows exactly how much goes unreported.
 
 ## Which scams cost older adults the most?
 
@@ -29,9 +29,9 @@ Here are the categories where people 60 and older reported the largest losses in
 | Investment fraud (often fake crypto trading platforms) | $3.52 billion |
 | Tech support and customer support scams | $1.04 billion |
 | Romance and confidence scams | $584 million |
-| Recovery scams ("we can get your money back") | $540 million |
+| Recovery scams involving crypto ("we can get your money back") | $541 million |
 
-Source: [FBI IC3 2025 report via HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/). Cryptocurrency shows up again and again in these cases. Seniors filed 42,271 complaints that involved crypto in some way, with $4.35 billion in losses.
+Source: [FBI IC3 2025 report, pp. 47 and 54](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf#page=47). The recovery-scam figure comes from the report's cryptocurrency section, so it only counts cases where crypto was involved. Crypto shows up again and again in these cases: seniors filed 42,271 complaints that involved it in some way, with $4.35 billion in losses ([p. 46–47](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf#page=46)).
 
 ## What are the most common scams targeting seniors right now?
 
@@ -51,7 +51,7 @@ Source: [FBI IC3 2025 report via HousingWire](https://www.housingwire.com/articl
 
 ## How is AI changing scams against older adults?
 
-It's making familiar scams harder to spot. The FBI received more than 3,100 complaints from seniors in 2025 that mentioned AI, with losses above $352 million ([HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)). Scammers are using it to copy family members' voices, to make fake videos of celebrities recommending investments, and to write emails without the clumsy spelling and grammar that used to give them away. So if a voice sounds familiar or an email looks professional, that alone doesn't tell you much anymore.
+It's making familiar scams harder to spot. The FBI received more than 3,100 complaints from seniors in 2025 that mentioned AI, with losses above $352 million ([FBI IC3 2025 report, pp. 46–47](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf#page=46)). Scammers are using it to copy family members' voices, to make fake videos of celebrities recommending investments, and to write emails without the clumsy spelling and grammar that used to give them away. So if a voice sounds familiar or an email looks professional, that alone doesn't tell you much anymore.
 
 ## What warning signs do most scams have in common?
 
@@ -68,12 +68,12 @@ The stories change all the time, but what the scammer eventually asks you to do 
 
 ## What should you do if you think you've been scammed?
 
-Try not to let embarrassment slow you down, because acting quickly can make a real difference. In 2025 the FBI's Recovery Asset Team was able to freeze $32.9 million of the $65.4 million in elder-fraud losses that were reported to it fast enough to act on ([HousingWire](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)).
+Try not to let embarrassment slow you down, because acting quickly can make a real difference. In 2025 the FBI's Recovery Asset Team was able to freeze $32.9 million of the $65.4 million in elder-fraud losses that were reported to it fast enough to act on ([FBI IC3 2025 report, p. 18](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf#page=18)).
 
 1. Stop answering the scammer and don't send anything else.
 2. Call your bank or card company, using the phone number on your card or statement, and ask whether the payment can be stopped or recalled.
 3. Report it to the FBI at [ic3.gov](https://www.ic3.gov/) and to the FTC at [ReportFraud.ftc.gov](https://reportfraud.ftc.gov/).
-4. If you'd like help with the reports, call the National Elder Fraud Hotline at 1-833-FRAUD-11 (1-833-372-8311). It's free and run by the U.S. Department of Justice ([DOJ](https://www.justice.gov/usao-or/pr/department-justice-charges-unprecedented-number-elder-fraud-defendants-nationwide-and)).
+4. If you'd like help with the reports, call the National Elder Fraud Hotline at 1-833-FRAUD-11 (1-833-372-8311). It's free and run by the U.S. Department of Justice ([Office for Victims of Crime](https://ovc.ojp.gov/program/stop-elder-fraud/faqs)).
 5. File a police report, and keep copies of messages, receipts, and phone numbers.
 6. Be wary of anyone who contacts you afterward offering to recover your money for a fee. That's a common second scam aimed at people who've just lost money.
 
@@ -102,9 +102,7 @@ Most families start with a relaxed conversation, agree on a family code word, an
 ## Sources
 
 - [FBI IC3, 2025 Internet Crime Report (PDF)](https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf)
-- [HousingWire: FBI report on seniors and cybercrime in 2025](https://www.housingwire.com/articles/fbi-seniors-cybercrime-2025/)
-- [CyberScoop: Cybercrime losses jumped 26% to $20.9 billion in 2025](https://cyberscoop.com/fbi-internet-crime-complaint-center-annual-cybercrime-report/)
+- [FTC: Testimony on 2025 fraud data (March 2026)](https://www.ftc.gov/news-events/news/press-releases/2026/03/ftc-testifies-joint-economic-committee-agencys-efforts-combat-fraud)
 - [AARP: New FBI report, older adults hit hardest](https://www.aarp.org/money/scams-fraud/fbi-ftc-report-2025-losses)
-- [FTC: Annual report to Congress on protecting older adults](https://www.ftc.gov/news-events/news/press-releases/2025/12/ftc-issues-annual-report-congress-agencys-actions-protect-older-adults)
-- [Fox Business: FTC estimate of total fraud cost to older adults](https://www.foxbusiness.com/money/older-americans-lost-up-81-5b-past-year-financial-fraud-ftc-report-says)
-- [U.S. DOJ: National Elder Fraud Hotline](https://www.justice.gov/usao-or/pr/department-justice-charges-unprecedented-number-elder-fraud-defendants-nationwide-and)
+- [FTC: Protecting Older Consumers 2024–2025 (PDF)](https://www.ftc.gov/system/files/ftc_gov/pdf/P144400-OlderAdultsReportDec2025.pdf)
+- [U.S. DOJ Office for Victims of Crime: National Elder Fraud Hotline](https://ovc.ojp.gov/program/stop-elder-fraud/faqs)
