@@ -62,3 +62,6 @@ header.wrap{gap:24px}header.wrap nav{gap:20px}nav a[aria-current=page]{text-deco
 .signup-dialog #signup-consent[hidden]{display:none}
 .signup-dialog #signup-skip{align-self:center}
 .signup-dialog #waitlist-title{padding-right:44px}
+.signup-billing{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.signup-billing legend{grid-column:1/-1;font-size:20px;font-weight:600;margin-bottom:12px}
+.signup-billing .signup-choice{margin-bottom:0}
