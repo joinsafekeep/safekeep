@@ -67,3 +67,8 @@ header.wrap{gap:24px}header.wrap nav{gap:20px}nav a[aria-current=page]{text-deco
 .signup-billing .signup-choice{margin-bottom:0}
 /* Four-link mobile nav (adds Scam alerts): keep it on one row, wrap only in larger-text mode. */
 @media(max-width:750px){nav.mobile-about-nav{flex-wrap:wrap;justify-content:space-between;column-gap:10px;row-gap:0}nav.mobile-about-nav a{font-size:.8rem}.large-text nav.mobile-about-nav{justify-content:flex-start;column-gap:18px}}
+/* Secondary header CTA for existing members, beside Sign up. */
+.nav-signin{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-height:46px;padding:10px 15px;border:1px solid var(--green);border-radius:6px;color:var(--green);font-size:.8rem;font-weight:550;text-decoration:none;white-space:nowrap}
+.nav-signin:hover{background:#eaf1e4}
+@media(max-width:750px){header.wrap .nav-signin{min-height:44px;padding:8px 11px;font-size:.72rem}header.wrap{gap:10px}}
+@media(max-width:360px){header.wrap{gap:6px}header.wrap .nav-signin{padding:8px 6px;font-size:.67rem}header.wrap .nav-cta{padding:8px 9px}.large-text header.wrap .brand{font-size:27px}}
