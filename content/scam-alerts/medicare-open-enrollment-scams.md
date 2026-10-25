@@ -38,7 +38,7 @@ It helps to ask yourself a few questions while you're on the phone. Did you cont
 
 If you're unsure, end the call and dial 1-800-MEDICARE (1-800-633-4227) yourself, or compare plans directly at [Medicare.gov](https://www.medicare.gov/). Your State Health Insurance Assistance Program (SHIP) also offers free, unbiased help choosing a plan.
 
-**Saying no to a polite, persistent caller gets easier with practice.** Safekeep is planning weekly practice calls and messages, including Medicare impostors, each followed by an explanation of what gave it away. [Join the free waitlist](#waitlist).
+**Saying no to a polite, persistent caller gets easier with practice.** Safekeep is planning weekly practice calls and messages, including Medicare impostors, each followed by an explanation of what gave it away. [Sign up](#waitlist).
 
 ## What should you do if you gave out your Medicare number?
 

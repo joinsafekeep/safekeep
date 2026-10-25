@@ -1,6 +1,6 @@
 # Safekeep
 
-> Safekeep is a planned monthly subscription that helps older adults recognize scams through weekly simulated scam texts, emails, and phone calls, with plain-language feedback after each one and a monthly progress report shared with family members they choose. It is scam-awareness education and does not access bank accounts. Plans start at $5/month; enrollment is opening soon via a free waitlist.
+> Safekeep is a monthly subscription that helps older adults recognize scams through weekly simulated scam texts, emails, and phone calls, with plain-language feedback after each one and a monthly progress report shared with family members they choose. It is scam-awareness education and does not access bank accounts. Plans start at $5/month, with a 60-day money-back guarantee.
 
 ## Product
 

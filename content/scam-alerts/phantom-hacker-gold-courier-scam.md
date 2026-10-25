@@ -48,7 +48,7 @@ Any one of these is a good reason to stop and check with someone you trust:
 - A courier or "agent" coming to your house to collect something.
 - Being told the matter is confidential and you shouldn't mention it to family.
 
-**These calls are easier to resist if you've heard one before.** Safekeep's planned weekly practice includes a fake bank call asking you to move money, followed by an explanation of what gave it away. [Join the free waitlist](#waitlist).
+**These calls are easier to resist if you've heard one before.** Safekeep's weekly practice includes a fake bank call asking you to move money, followed by an explanation of what gave it away. [Sign up](#waitlist).
 
 ## How do you protect yourself?
 

@@ -60,7 +60,7 @@ These take an afternoon to set up and mostly run in the background afterward:
 
 Knowing that scams exist is a good start, but recognizing one while it's happening is harder, especially when the caller is good at what they do. Seeing realistic examples, deciding what you'd do, and then finding out what you missed builds that skill over time.
 
-**That's what we're building Safekeep to do.** Your parent signs up, chooses to take part, and gets realistic practice scams each week by text, email, and phone, with a short explanation after each one. Each month, they and the family members they choose get a progress report and an update on new scams. Plans will start at $5 a month. [Join the free waitlist](#waitlist).
+**That's what we're building Safekeep to do.** Your parent signs up, chooses to take part, and gets realistic practice scams each week by text, email, and phone, with a short explanation after each one. Each month, they and the family members they choose get a progress report and an update on new scams. Plans start at $5 a month. [Sign up](#waitlist).
 
 ## What are the signs a parent is being scammed?
 

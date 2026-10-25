@@ -10,7 +10,7 @@
 //   scam-alerts/<slug>.html       -> https://joinsafekeep.com/scam-alerts/<slug>
 //   sitemap.xml, llms.txt
 //
-// The page chrome (Google tag, header, footer, waitlist dialog, scripts) is
+// The page chrome (Google tag, header, footer, sign-up dialog, scripts) is
 // copied from pricing.html, so nav or footer changes there carry over the next
 // time this runs. No dependencies; Node 18+.
 
@@ -74,7 +74,7 @@ function plain(text) {
 
 function link(label, href) {
   const text = inline(label);
-  const isWaitlist = href === '#waitlist' || (/^https:\/\/joinsafekeep\.com\/?$/.test(href) && /waitlist/i.test(label));
+  const isWaitlist = href === '#waitlist' || (/^https:\/\/joinsafekeep\.com\/?$/.test(href) && /waitlist|sign up/i.test(label));
   if (isWaitlist) return `<button class="text-link" type="button" data-open-waitlist>${text} <span aria-hidden="true">→</span></button>`;
   if (href.startsWith('https://joinsafekeep.com')) href = href.slice('https://joinsafekeep.com'.length) || '/';
   if (/^https?:\/\//.test(href)) return `<a href="${attr(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
@@ -217,7 +217,7 @@ ${markCurrent(chromeTop)}${body}${markCurrent(chromeBottom)}`;
 
 const ORG = { '@type': 'Organization', name: 'Safekeep', url: `${SITE}/`, logo: { '@type': 'ImageObject', url: `${SITE}/apple-touch-icon.png` } };
 
-const waitlistCallout = `<section class="waitlist-section"><div class="wrap waitlist-callout"><h2>A little practice.<br>A little more prepared.</h2><p>Help yourself or someone you love stay ready.</p><button class="button" type="button" data-open-waitlist>Join the waitlist <span aria-hidden="true">→</span></button><p class="cta-reassurance">No payment today. Plans from $5/month. No commitment.</p></div></section>`;
+const waitlistCallout = `<section class="waitlist-section"><div class="wrap waitlist-callout"><h2>A little practice.<br>A little more prepared.</h2><p>Help yourself or someone you love stay ready.</p><button class="button" type="button" data-open-waitlist>Sign up <span aria-hidden="true">→</span></button><p class="cta-reassurance">Plans from $5/month. 60-day money-back guarantee.</p></div></section>`;
 
 function card(a) {
   return `<li class="alert-card"><h3><a href="${a.path}">${smartQuotes(esc(a.title))}</a></h3><p>${smartQuotes(esc(a.summary || a.description))}</p><p class="alert-card-meta">${a.weekly ? longDate(a.published) : `Updated ${longDate(a.updated)}`} · ${a.minutes} min read</p></li>`;
@@ -324,7 +324,7 @@ ${urls.map((u) => `<url><loc>${u.loc}</loc>${u.lastmod ? `<lastmod>${u.lastmod}<
 // llms.txt: a plain summary for AI answer engines (https://llmstxt.org).
 writeFileSync(join(ROOT, 'llms.txt'), `# Safekeep
 
-> Safekeep is a planned monthly subscription that helps older adults recognize scams through weekly simulated scam texts, emails, and phone calls, with plain-language feedback after each one and a monthly progress report shared with family members they choose. It is scam-awareness education and does not access bank accounts. Plans start at $5/month; enrollment is opening soon via a free waitlist.
+> Safekeep is a monthly subscription that helps older adults recognize scams through weekly simulated scam texts, emails, and phone calls, with plain-language feedback after each one and a monthly progress report shared with family members they choose. It is scam-awareness education and does not access bank accounts. Plans start at $5/month, with a 60-day money-back guarantee.
 
 ## Product
 

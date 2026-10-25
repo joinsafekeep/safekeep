@@ -30,5 +30,5 @@ These read as machine-written. Don't use them, even once.
 - H2s phrased as the questions people search for, the "Quick answer" paragraph at the top, and the FAQ section. Those are for search engines and AI answers, and they can still be written warmly.
 - Every number tied to a named source and a link. Paraphrase sources; never quote more than a short phrase.
 - Cite the original source wherever one exists: the FBI/IC3 report or PSA, the FTC report or press release, the DOJ or HHS-OIG page. Link PDFs to the exact page (`…report.pdf#page=44`). Use news coverage only for things the agencies didn't publish themselves, and say whose figure it is.
-- Describe Safekeep's simulations as planned until enrollment opens. Never imply Safekeep guarantees protection.
+- Safekeep is open for sign-ups. Don't call the simulations planned or coming soon. Never imply Safekeep guarantees protection.
 - No fear-mongering. The tone is calm and on the reader's side.

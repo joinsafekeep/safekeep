@@ -64,7 +64,7 @@ The stories change all the time, but what the scammer eventually asks you to do 
 - Asks you to install something on your computer or read back a code that was texted to you.
 - Reached out to you first, out of the blue.
 
-**It's easier to notice these signs if you've seen them before.** Safekeep is planning weekly practice scams by text, email, and phone, each followed by a short explanation of what to look for. [Join the free waitlist](#waitlist).
+**It's easier to notice these signs if you've seen them before.** Safekeep is planning weekly practice scams by text, email, and phone, each followed by a short explanation of what to look for. [Sign up](#waitlist).
 
 ## What should you do if you think you've been scammed?
 

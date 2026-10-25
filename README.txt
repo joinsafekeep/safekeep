@@ -8,7 +8,9 @@ This is a frontend export, not the full server application. /api/waitlist, /api/
 
 The hosted site currently requires invited access. Search engines cannot index it until public access is enabled.
 
-UPDATE (Oct 11, 2026): Waitlist signups now post to Formspree (form "Safekeep Waitlist", endpoint https://formspree.io/f/mbgdkpww, set in app.js as FORMSPREE_ENDPOINT), so the site works on static hosting such as GitHub Pages. Each signup emails the Formspree account owner and appears under the form's Submissions tab. /api/events page tracking is disabled. Don't upload the .claude folder.
+UPDATE (Oct 11, 2026): Signups post to Formspree (form "Safekeep Waitlist", endpoint https://formspree.io/f/mbgdkpww, set in app.js as FORMSPREE_ENDPOINT), so the site works on static hosting such as GitHub Pages. Each signup emails the Formspree account owner and appears under the form's Submissions tab. /api/events page tracking is disabled. Don't upload the .claude folder.
+
+UPDATE (Oct 25, 2026): The waitlist is now a sign-up flow. After contact details (and the optional who-is-it-for steps), people choose a plan and billing period and are sent to a Stripe Payment Link. The six live links (products "Safekeep Individual", "Safekeep Pairs", "Safekeep Family") are set in STRIPE_LINKS in app.js, and each redirects to https://joinsafekeep.com/?signup=complete after payment. The session id is passed as client_reference_id, so Stripe payments can be matched to Formspree submissions. Until a link is filled in, choosing that plan saves the choice to Formspree and tells the person we'll email a payment link.
 
 SCAM ALERTS (added Oct 18, 2026)
 Articles live as markdown in content/scam-alerts/<slug>.md and publish at https://joinsafekeep.com/scam-alerts/<slug>. After adding or editing one, run:
@@ -18,6 +20,6 @@ Articles live as markdown in content/scam-alerts/<slug>.md and publish at https:
 
 Before writing, read content/STYLE.md (house voice and phrases to avoid). content/KEYWORDS.md lists the search terms each guide targets and topics worth covering next.
 
-That regenerates scam-alerts/*.html (the index and every article), sitemap.xml and llms.txt. Commit the generated files along with the markdown; Netlify serves them as-is, no build step. Styles for the section are in scam-alerts.css. The header, footer and waitlist dialog are copied from pricing.html on each build, so change those there.
+That regenerates scam-alerts/*.html (the index and every article), sitemap.xml and llms.txt. Commit the generated files along with the markdown; Netlify serves them as-is, no build step. Styles for the section are in scam-alerts.css. The header, footer and sign-up dialog are copied from pricing.html on each build, so change those there.
 
-Front matter: title, seo_title (<= 60 chars), description (150-155 chars), summary (index card), keywords, type ("Guide", "Seasonal alert", or "Weekly alert" for the weekly posts), order (optional sort among same-date guides), published and updated (YYYY-MM-DD), draft: true to hold a file back. Under "## Frequently asked questions", each "### Question" heading plus the paragraph after it becomes FAQ schema. Link to [Join the free waitlist](#waitlist) to open the signup dialog.
+Front matter: title, seo_title (<= 60 chars), description (150-155 chars), summary (index card), keywords, type ("Guide", "Seasonal alert", or "Weekly alert" for the weekly posts), order (optional sort among same-date guides), published and updated (YYYY-MM-DD), draft: true to hold a file back. Under "## Frequently asked questions", each "### Question" heading plus the paragraph after it becomes FAQ schema. Link to [Sign up](#waitlist) to open the sign-up dialog.

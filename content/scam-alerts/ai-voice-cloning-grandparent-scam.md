@@ -47,7 +47,7 @@ Since you can't rely on the sound of the voice, the best approach is to check be
 4. Ask something only the real person would know, ideally something that's never been mentioned online, like a family joke or the name of an old pet.
 5. Don't hand money to a courier. Courts, jails, and lawyers don't send people to your house to collect cash or gold, and the FBI has warned that grandparent scams are increasingly ending with exactly that kind of pickup, sometimes by a hired driver who has no idea what he's part of ([FBI Boston](https://www.fbi.gov/contact-us/field-offices/boston/news/fbi-boston-warns-of-increase-in-gold-bar-and-bulk-cash-courier-scams)).
 
-**It helps to hear what one of these calls sounds like before it happens.** Safekeep's planned weekly practice includes realistic family-emergency calls and texts, followed by a short explanation of the warning signs. [Join the free waitlist](#waitlist).
+**It helps to hear what one of these calls sounds like before it happens.** Safekeep's weekly practice includes realistic family-emergency calls and texts, followed by a short explanation of the warning signs. [Sign up](#waitlist).
 
 ## How do you set up a family code word?
 
