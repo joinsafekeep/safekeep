@@ -65,3 +65,5 @@ header.wrap{gap:24px}header.wrap nav{gap:20px}nav a[aria-current=page]{text-deco
 .signup-billing{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
 .signup-billing legend{grid-column:1/-1;font-size:20px;font-weight:600;margin-bottom:12px}
 .signup-billing .signup-choice{margin-bottom:0}
+/* Four-link mobile nav (adds Scam alerts): keep it on one row, wrap only in larger-text mode. */
+@media(max-width:750px){nav.mobile-about-nav{flex-wrap:wrap;justify-content:space-between;column-gap:10px;row-gap:0}nav.mobile-about-nav a{font-size:.8rem}.large-text nav.mobile-about-nav{justify-content:flex-start;column-gap:18px}}
