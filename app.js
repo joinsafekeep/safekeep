@@ -92,7 +92,7 @@ document.querySelector('#recipient-form').addEventListener('submit',async e=>{
 const viewport=window.visualViewport;
 function fitSignupToViewport(){const height=viewport?.height||innerHeight;waitlistDialog.style.setProperty('--signup-available-height',Math.round(height-24)+'px');waitlistDialog.style.setProperty('--signup-offset',Math.round((viewport?.offsetTop||0)+12)+'px');}
 if(viewport){viewport.addEventListener('resize',fitSignupToViewport);viewport.addEventListener('scroll',fitSignupToViewport);}window.addEventListener('resize',fitSignupToViewport);fitSignupToViewport();
-if(campaignParams.get('signup')==='complete'){history.replaceState(null,'',location.pathname);showSignupComplete('Your subscription is set up.','Stripe will email your receipt. We’ll email you soon to set up your first simulations.');waitlistDialog.showModal();fitSignupToViewport();}
+if(campaignParams.get('signup')==='complete'){history.replaceState(null,'',location.pathname);showSignupComplete('Your subscription is set up.','Stripe will email your receipt. We’ll email you soon to set up your first simulations. To cancel or update your card later, use Manage subscription at the bottom of any page.');waitlistDialog.showModal();fitSignupToViewport();}
 // Coming back from Stripe with the browser's Back button can restore the page mid-save.
 window.addEventListener('pageshow',e=>{if(e.persisted&&signupStage==='plan')showSignupStage('plan');});
 const heroVideo=document.querySelector('#hero-video');
