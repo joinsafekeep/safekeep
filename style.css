@@ -72,3 +72,7 @@ header.wrap{gap:24px}header.wrap nav{gap:20px}nav a[aria-current=page]{text-deco
 .nav-signin:hover{background:#eaf1e4}
 @media(max-width:750px){header.wrap .nav-signin{min-height:44px;padding:8px 11px;font-size:.72rem}header.wrap{gap:10px}}
 @media(max-width:360px){header.wrap{gap:6px}header.wrap .nav-signin{padding:8px 6px;font-size:.67rem}header.wrap .nav-cta{padding:8px 9px}.large-text header.wrap .brand{font-size:27px}}
+/* Header Sign up matches the Sign in button's size. */
+header.wrap .nav-cta.button{min-height:46px;max-width:none;padding:10px 15px;gap:0;justify-content:center;font-size:.8rem;line-height:1.2}
+@media(max-width:750px){header.wrap .nav-cta.button{min-height:44px;padding:8px 11px;font-size:.72rem}}
+@media(max-width:360px){header.wrap .nav-cta.button{padding:8px 6px;font-size:.67rem}}
