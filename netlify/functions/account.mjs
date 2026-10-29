@@ -1,5 +1,5 @@
 import { createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr';
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 const defaults = {
  url: 'https://iybcbztvofqihvqhqfoo.supabase.co',
@@ -58,6 +58,18 @@ async function turnstileOk(secret, token, ip, fetcher) {
   return response.ok && (await response.json()).success === true;
  } catch { return false; }
 }
+// Phone verification through Twilio Verify: a text to a cell, or a short automated call that reads the code to a
+// landline. Enabled when TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_VERIFY_SERVICE_SID are set. The code is
+// checked here, never in the browser, and the database is told only through an HMAC proof under PHONE_VERIFY_SECRET
+// (the same value sits in safekeep_private.secrets), so a signed-in user cannot mark a number verified themselves.
+function twilio(env) {
+ if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_VERIFY_SERVICE_SID || !env.PHONE_VERIFY_SECRET) return null;
+ const auth = 'Basic ' + Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+ const base = `https://verify.twilio.com/v2/Services/${env.TWILIO_VERIFY_SERVICE_SID}`;
+ return { auth, start: `${base}/Verifications`, check: `${base}/VerificationCheck` };
+}
+export const verificationChannel = kind => kind === 'mobile' ? 'sms' : 'call';
+export const phoneProof = (secret, userId, contactId, method) => createHmac('sha256', secret).update(`${userId}:${contactId}:${method}`).digest('hex');
 export function makeHandler({ createClient = createServerClient, env = process.env, fetcher = globalThis.fetch, now = () => new Date() } = {}) {
  return async request => {
   const headers = new Headers({'Content-Type':'application/json','Cache-Control':'private, no-store','Pragma':'no-cache','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});
@@ -175,16 +187,59 @@ export function makeHandler({ createClient = createServerClient, env = process.e
    }
    if(action==='state') {
     await finishSignup(user);
-    const [profile,preferences,contacts,consents,acceptances]=await Promise.all([
+    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion]=await Promise.all([
      client.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_preferences').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_contacts').select('*').eq('user_id',user.id).order('created_at'),
      client.from('consent_events').select('contact_id,channel,action,sequence').eq('user_id',user.id).order('sequence',{ascending:false}),
-     client.from('policy_acceptances').select('document,version,source,accepted_at').eq('user_id',user.id).order('accepted_at',{ascending:false})
+     client.from('policy_acceptances').select('document,version,source,accepted_at').eq('user_id',user.id).order('accepted_at',{ascending:false}),
+     client.from('report_recipients').select('id,name,email,added_at').eq('participant_user_id',user.id).is('removed_at',null).order('added_at'),
+     client.from('account_deletions').select('requested_at,cancelled_at').eq('user_id',user.id).maybeSingle()
     ]);
     const signup=meta.safekeep_signup || {};
+    const deletion=must(pendingDeletion);
     return reply({signed_in:true,email:user.email,profile:must(profile),preferences:must(preferences),contacts:must(contacts),consents:must(consents),acceptances:must(acceptances),
+     report_recipients:must(recipients),deletion:deletion && !deletion.cancelled_at?{requested_at:deletion.requested_at,delete_after:new Date(new Date(deletion.requested_at).getTime()+30*86400000).toISOString()}:null,
+     phone_verification:!!twilio(env),
      intent:meta.safekeep_intent || null,signup:{first_name:signup.first_name || null,adult_confirmed:!!signup.adult_confirmed_at},policy_version:POLICY_VERSION,plans:PLANS});
+   }
+   if(action==='phone_verify_start' || action==='phone_verify_check') {
+    const provider=twilio(env);
+    if(!provider) return reply({error:'Phone verification isn’t available yet.'},503);
+    const contactId=String(body.payload?.contact_id || '');
+    if(!/^[0-9a-f-]{36}$/.test(contactId)) return reply({error:'Contact not found.'},404);
+    const contact=must(await client.from('user_contacts').select('id,kind,normalized_value,verified_at').eq('user_id',user.id).eq('id',contactId).maybeSingle());
+    if(!contact || contact.kind==='email') return reply({error:'Contact not found.'},404);
+    const channel=verificationChannel(contact.kind);
+    if(action==='phone_verify_start') {
+     const response=await fetcher(provider.start,{method:'POST',headers:{Authorization:provider.auth},body:new URLSearchParams({To:contact.normalized_value,Channel:channel})});
+     if(response.status===429) return reply({error:'Please wait before trying again.'},429);
+     if(!response.ok) return reply({error:channel==='sms'?'We couldn’t text that number. Check it and try again.':'We couldn’t call that number. Check it and try again.'},400);
+     return reply({message:channel==='sms'?'We texted a 6-digit code to that number.':'We’re calling that number now with a 6-digit code.',channel});
+    }
+    const code=String(body.payload?.code || '').replace(/\D/g,'');
+    if(code.length<4 || code.length>10) return reply({error:'Enter the 6-digit code.'},400);
+    const response=await fetcher(provider.check,{method:'POST',headers:{Authorization:provider.auth},body:new URLSearchParams({To:contact.normalized_value,Code:code})});
+    if(response.status===429) return reply({error:'Please wait before trying again.'},429);
+    const result=response.ok?await response.json():{};
+    if(result.status!=='approved') return reply({error:'That code is not right or has expired. Send a new one and try again.'},400);
+    const method=channel==='sms'?'otp_sms':'otp_call';
+    await rpc('verify_phone',{contact_id:contact.id,method,proof:phoneProof(env.PHONE_VERIFY_SECRET,user.id,contact.id,method)});
+    return reply({message:'Number verified.'});
+   }
+   if(action==='export') {
+    // Everything the account holds, as one JSON file the person downloads while signed in.
+    const tables=[['profile','user_profiles','user_id'],['preferences','user_preferences','user_id'],['contacts','user_contacts','user_id'],['consent_events','consent_events','user_id'],['policy_acceptances','policy_acceptances','user_id'],['practices','user_practices','user_id'],['report_recipients','report_recipients','participant_user_id'],['deletion','account_deletions','user_id']];
+    const rows=await Promise.all(tables.map(([,table,column])=>client.from(table).select('*').eq(column,user.id)));
+    const data={exported_at:now().toISOString(),email:user.email,created_at:user.created_at,email_confirmed_at:user.email_confirmed_at};
+    tables.forEach(([key],i)=>{data[key]=must(rows[i]);});
+    headers.set('Content-Disposition',`attachment; filename="safekeep-export-${now().toISOString().slice(0,10)}.json"`);
+    return reply(data);
+   }
+   if(action==='request_deletion') {
+    const result=await rpc('request_deletion');
+    must(await client.auth.signOut({scope:'global'}));
+    return reply({message:'Your account will be deleted in 30 days. Sign in before then to keep it.',delete_after:result?.delete_after || null});
    }
    if(action==='intent') {
     // The plan picker on /account/, for people who arrived without the dialog or want to change their choice.
@@ -214,9 +269,9 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     await rpc('accept_policies',{source:body.payload?.source==='reprompt'?'reprompt':'signup',version:POLICY_VERSION,documents:['terms','privacy'],ip_hash:hashIp(clientIp, env.POLICY_IP_SALT || origin),user_agent:text(request.headers.get('user-agent'),512)});
     return reply({message:'Saved.'});
    }
-   if(['profile','add_phone','consent','preferences'].includes(action)) {
-    const payload=body.payload;
-    if(!payload || typeof payload!=='object' || Array.isArray(payload)) return reply({error:'Invalid form.'},400);
+   if(['profile','add_phone','consent','preferences','remove_phone','add_report_recipient','remove_report_recipient','cancel_deletion'].includes(action)) {
+    const payload=body.payload || {};
+    if(typeof payload!=='object' || Array.isArray(payload)) return reply({error:'Invalid form.'},400);
     // The adult attestation given at account creation carries over, so the profile form does not ask twice.
     if(action==='profile' && payload.adult_confirmed!==true && meta.safekeep_signup?.adult_confirmed_at) payload.adult_confirmed=true;
     await rpc(action,payload); return reply({message:'Saved.'});
@@ -225,7 +280,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
   } catch(error) {
    // Never log credentials, tokens, personal data or the request body.
    if(error?.code==='23505') return reply({error:'That contact is already saved.'},409);
-   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents'];
+   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents','Choose a phone contact','Choose a channel','Choose grant or revoke','Text practice needs a cell','Verify this number first','Keep your account first','Give consent for a verified contact','Choose a resume date','Enter their name','Up to five people','That person already','No deletion is pending','Phone verification is not configured','Choose a verification method'];
    const message=String(error?.message||'');
    return reply({error:safeMessages.some(prefix=>message.startsWith(prefix))?message:'Unable to complete this request. Please try again.'},400);
   }

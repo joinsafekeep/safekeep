@@ -68,20 +68,27 @@ async function refresh(){
  $('settings').classList.toggle('later',hasProfile);
  if(hasProfile)$('settings').prepend($('profile-section'));else $('terms-section').after($('profile-section'));
  // Practice consent is not offered before payment on the sponsor path. Until a subscription record exists this is
- // a page-level guard: the section appears after the return from Stripe, or when a consent choice already exists.
+ // a page-level guard: the section appears after the return from Stripe, or once any consent choice exists.
  const hasConsent=(state.consents||[]).length>0;
- $('practice-section').hidden=!(checkoutReturn||hasConsent);
+ $('practice-section').hidden=!(checkoutReturn||hasConsent||!!state.preferences?.practice_enabled);
  // Nothing else is offered while the terms need accepting.
  for(const id of ['checkout-section','plan-section','paid-section','settings'])if(!termsCurrent)$(id).hidden=true;
- $('contacts').replaceChildren();
- for(const c of state.contacts){const li=document.createElement('li');li.textContent=`${c.label || c.kind}: ${c.normalized_value}${c.extension?' ext. '+c.extension:''} — ${c.verified_at?'Verified':'Not verified'}`;$('contacts').append(li);}
- fill($('preferences-form'),state.preferences);
- const email=state.contacts.find(c=>c.kind==='email' && c.normalized_value===state.email.toLowerCase() && c.verified_at);
- const consent=state.consents.find(c=>c.contact_id===email?.id && c.channel==='email');
- $('consent-form').elements.consent.checked=consent?.action==='grant';
- $('consent-form').querySelector('button').disabled=!email;
- $('consent-state').textContent=consent?.action==='grant'?'Current choice: email practice consent granted.':'Current choice: no email practice consent.';
- message(!termsCurrent?'Please accept the current terms to continue.':!hasProfile?'Email verified. One more step before payment: finish your profile.':checkoutReturn?'Thank you. Your account is ready.':intent.checkout_started_at?'Your account is ready to manage.':'Your profile is saved. Choose your plan to continue to payment.');
+ // Pending deletion: one banner, one button to keep the account; everything else waits.
+ const deletion=state.deletion;
+ $('deletion-section').hidden=!deletion;
+ if(deletion){$('deletion-copy').textContent=`You asked us to delete your account. Practice has stopped and your consents are withdrawn. The account and its history will be erased on ${new Date(deletion.delete_after).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})} unless you choose to keep it.`;for(const id of ['checkout-section','plan-section','paid-section','settings'])$(id).hidden=true;}
+ renderContacts();
+ renderChannels();
+ const prefs=state.preferences||{};
+ fill($('preferences-form'),{max_practices_per_week:1,email_cap_per_month:4,text_cap_per_month:4,call_cap_per_month:2,quiet_hours_start:'20:00',quiet_hours_end:'09:00',alerts_opt_in:false,...prefs,paused_until:prefs.paused_until||''});
+ $('preferences-form').elements.practice_enabled.checked=!!prefs.practice_enabled;
+ for(const el of document.querySelectorAll('[data-cap]')){const key={email:'email_cap_per_month',text:'text_cap_per_month',call:'call_cap_per_month'}[el.dataset.cap];el.textContent=prefs[key]??el.textContent;}
+ $('preferences-form').elements.paused_until.min=new Date().toISOString().slice(0,10);
+ // Family: who pays, and who reads the report.
+ $('sponsor-line').textContent=intent.help_for==='other'?'You pay for this plan. The people you invite will see this page for their own account.':'You pay for your own plan. When someone else sponsors your practice, their name will show here.';
+ $('recipients').replaceChildren(...(state.report_recipients||[]).map(r=>{const li=document.createElement('li');const span=document.createElement('span');span.textContent=`${r.name} — ${r.email}`;const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='Remove';remove.onclick=()=>run(null,()=>api({action:'remove_report_recipient',payload:{recipient_id:r.id}}));li.append(span,remove);return li;}));
+ $('recipient-form').querySelector('button').disabled=(state.report_recipients||[]).length>=5;
+ message(deletion?'Your account is set to be deleted. Choose "Keep my account" to stay.':!termsCurrent?'Please accept the current terms to continue.':!hasProfile?'Email verified. One more step before payment: finish your profile.':checkoutReturn?'Thank you. Your account is ready.':intent.checkout_started_at?'Your account is ready to manage.':'Your profile is saved. Choose your plan to continue to payment.');
 }
 async function run(form,work){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{const result=await work();form?.reset();await refresh();message(result.message||'Saved.');}catch(error){message(error.message,true);}finally{buttons.forEach(b=>b.disabled=false);}}
 const zones=Intl.supportedValuesOf?Intl.supportedValuesOf('timeZone'):['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','UTC'];
@@ -105,10 +112,55 @@ $('confirm-form').addEventListener('submit',async event=>{event.preventDefault()
   message(error.message,true);
  }finally{buttons.forEach(b=>b.disabled=false);}});
 $('terms-form').addEventListener('submit',event=>{event.preventDefault();run(null,()=>api({action:'accept_policies',payload:{source:'reprompt'}}));});
-for(const [id,action] of [['profile','profile'],['phone','add_phone'],['preferences','preferences']])$(id+'-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const payload=fields(form);if(id==='profile')payload.adult_confirmed=form.elements.adult_confirmed.checked;if(id==='preferences')payload.practice_enabled=form.elements.practice_enabled.checked;const firstSave=id==='profile'&&!state.profile;await run(null,()=>api({action,payload}));
+for(const [id,action] of [['profile','profile'],['phone','add_phone'],['preferences','preferences']])$(id+'-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const payload=fields(form);if(id==='profile')payload.adult_confirmed=form.elements.adult_confirmed.checked;if(id==='preferences'){payload.practice_enabled=form.elements.practice_enabled.checked;payload.alerts_opt_in=form.elements.alerts_opt_in.checked;for(const k of ['max_practices_per_week','email_cap_per_month','text_cap_per_month','call_cap_per_month'])payload[k]=Number(payload[k]);if(!payload.paused_until)payload.paused_until=null;}const firstSave=id==='profile'&&!state.profile;await run(id==='phone'?form:null,()=>api({action,payload}));
  // First profile save in the sponsor path: move straight on to the plan.
  if(firstSave&&state.profile){const next=!$('checkout-section').hidden?$('checkout-section'):!$('plan-section').hidden?$('plan-section'):null;if(next){message('Your profile is saved. Continue to payment when you’re ready.');window.scrollTo({top:0});next.querySelector('h2').setAttribute('tabindex','-1');next.querySelector('h2').focus({preventScroll:true});}}});
-$('consent-form').addEventListener('submit',event=>{event.preventDefault();const contact=state.contacts.find(c=>c.kind==='email'&&c.normalized_value===state.email.toLowerCase()&&c.verified_at);if(!contact){message('Verify your email first.',true);return;}run(null,()=>api({action:'consent',payload:{contact_id:contact.id,channel:'email',action:event.currentTarget.elements.consent.checked?'grant':'revoke'}}));});
+// --- Contacts: verification by code (text to a cell, automated call to a landline) and removal.
+const latestConsent=(contactId,channel)=>(state.consents||[]).find(c=>c.contact_id===contactId&&c.channel===channel);
+const phoneLabel=c=>`${c.label||{mobile:'Cell',home:'Home',office:'Office',other:'Other'}[c.kind]||c.kind}: ${c.normalized_value}${c.extension?' ext. '+c.extension:''}`;
+let verifying=null; // contact id whose code form is open
+function renderContacts(){
+ $('contacts').replaceChildren(...state.contacts.filter(c=>!c.suppressed_at).map(c=>{
+  const li=document.createElement('li');const span=document.createElement('span');
+  const status=document.createElement('span');status.className=c.verified_at?'verified':'unverified';status.textContent=c.verified_at?'Verified':'Not verified';
+  span.textContent=(c.kind==='email'?'Email: ':'')+(c.kind==='email'?c.normalized_value:phoneLabel(c))+' — ';span.append(status);li.append(span);
+  if(c.kind!=='email'){
+   if(!c.verified_at&&state.phone_verification){const b=document.createElement('button');b.type='button';b.textContent=verifying===c.id?'Send a new code':(c.kind==='mobile'?'Text me a code':'Call me with a code');b.onclick=()=>startVerification(c);li.append(b);}
+   if(!c.verified_at&&!state.phone_verification){const note=document.createElement('small');note.textContent='Phone verification opens soon.';li.append(note);}
+   const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='Remove';remove.onclick=()=>{if(confirm('Remove this number? Any text or call practice to it stops.'))run(null,()=>api({action:'remove_phone',payload:{contact_id:c.id}}));};li.append(remove);
+   if(verifying===c.id){const form=document.createElement('form');form.innerHTML='<label>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{4,12}" maxlength="12" required></label><button>Verify</button>';form.onsubmit=e=>{e.preventDefault();run(form,async()=>{const r=await api({action:'phone_verify_check',payload:{contact_id:c.id,code:form.elements.code.value}});verifying=null;return r;});};li.append(form);setTimeout(()=>form.elements.code.focus({preventScroll:true}),0);}
+  }
+  return li;}));
+}
+async function startVerification(contact){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{const r=await api({action:'phone_verify_start',payload:{contact_id:contact.id}});verifying=contact.id;renderContacts();message(r.message||'Code sent.');}catch(error){message(error.message,true);}finally{buttons.forEach(b=>b.disabled=false);}}
+// --- Channels: one consent per channel on one verified contact; on = grant, off = revoke.
+function renderChannels(){
+ const email=state.contacts.find(c=>c.kind==='email'&&c.normalized_value===state.email.toLowerCase()&&c.verified_at);
+ const emailConsent=email&&latestConsent(email.id,'email');
+ $('channel-email-target').textContent=email?`Practice emails would go to ${email.normalized_value}.`:'Verify your login email first.';
+ $('channel-email-form').elements.on.checked=emailConsent?.action==='grant';$('channel-email-form').querySelector('button').disabled=!email;
+ $('channel-email-state').textContent=emailConsent?.action==='grant'?'Email practice is on.':'Email practice is off.';
+ for(const [channel,kinds] of [['text',['mobile']],['phone',['mobile','home','office','other']]]){
+  const form=$(`channel-${channel}-form`),select=form.elements.contact_id;
+  const options=state.contacts.filter(c=>kinds.includes(c.kind)&&c.verified_at&&!c.suppressed_at);
+  const current=options.find(c=>latestConsent(c.id,channel)?.action==='grant')||options[0];
+  select.replaceChildren(...options.map(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=phoneLabel(c);o.selected=c===current;return o;}));
+  select.disabled=!options.length;form.querySelector('button').disabled=!options.length;
+  $(`channel-${channel}-note`).textContent=options.length?'':(channel==='text'?'Add and verify a cell number above to practice by text.':'Add and verify a phone number above to practice by phone.');
+  const on=current&&latestConsent(current.id,channel)?.action==='grant';
+  form.elements.on.checked=!!on;$(`channel-${channel}-state`).textContent=on?`${channel==='text'?'Text':'Call'} practice is on.`:`${channel==='text'?'Text':'Call'} practice is off.`;
+ }
+}
+$('channel-email-form').addEventListener('submit',event=>{event.preventDefault();const contact=state.contacts.find(c=>c.kind==='email'&&c.normalized_value===state.email.toLowerCase()&&c.verified_at);if(!contact){message('Verify your email first.',true);return;}run(null,()=>api({action:'consent',payload:{contact_id:contact.id,channel:'email',action:event.currentTarget.elements.on.checked?'grant':'revoke'}}));});
+for(const channel of ['text','phone'])$(`channel-${channel}-form`).addEventListener('submit',event=>{event.preventDefault();const form=event.currentTarget;const contactId=form.elements.contact_id.value;if(!contactId)return;
+ // Switching numbers while on: withdraw the old one's grant first so only one number per channel is live.
+ run(null,async()=>{const on=form.elements.on.checked;for(const c of state.contacts){const latest=latestConsent(c.id,channel);if(latest?.action==='grant'&&(c.id!==contactId||!on))await api({action:'consent',payload:{contact_id:c.id,channel,action:'revoke'}});}
+  if(on&&latestConsent(contactId,channel)?.action!=='grant')return api({action:'consent',payload:{contact_id:contactId,channel,action:'grant'}});return {message:'Saved.'};});});
+// --- Family, data, deletion.
+$('recipient-form').addEventListener('submit',event=>{event.preventDefault();const form=event.currentTarget;run(form,()=>api({action:'add_report_recipient',payload:fields(form)}));});
+$('export-form').addEventListener('submit',async event=>{event.preventDefault();const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{const data=await api({action:'export'});const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`safekeep-export-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);message('Your data file is downloading.');}catch(error){message(error.message,true);}finally{buttons.forEach(b=>b.disabled=false);}});
+$('delete-form').addEventListener('submit',event=>{event.preventDefault();if(!event.currentTarget.reportValidity())return;run(event.currentTarget,async()=>{const r=await api({action:'request_deletion'});await refresh();return r;});});
+$('keep-form').addEventListener('submit',event=>{event.preventDefault();run(null,async()=>{await api({action:'cancel_deletion'});return {message:'Your account is staying. Turn practice channels back on whenever you’re ready.'};});});
 // Checkout: the server returns the Stripe URL for the chosen plan, keyed to this account.
 async function startCheckout(payload){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{message('Opening secure payment…');const result=await api({action:'checkout',payload});location.href=result.url;}catch(error){message(error.message,true);buttons.forEach(b=>b.disabled=false);}}
 $('checkout-form').addEventListener('submit',event=>{event.preventDefault();startCheckout({});});

@@ -32,9 +32,27 @@ Before deploying:
 7. Review Supabase Auth rate limits (sign-ups, OTP verifications, resends per hour) in the dashboard before public enrollment; `verify_code` passes Supabase's 429 through as "Please wait before trying again."
 8. Still to build from the PRD: the 24h/72h "verified but never paid" reminders, the weekly cleanup of unconfirmed users older than 30 days, clearing the intent once billing has used it, and the subscription record that lets the page know a payment landed. Until then /account/ keeps "Continue to payment" available after a return from Stripe, and practice consent is hidden client-side before that return (server-side enforcement comes with the subscriptions table).
 
+## Settings (added October 29, 2026)
+
+Built to the "Settings" section of the MVP PRD, on top of the sign-up handoff. Migration: database/settings.sql (tests: database/settings-tests.sql, run in a transaction; both verified on a local Postgres 16 with a stand-in auth schema).
+
+- Channels: email, text and phone are separate consents in consent_events (policy version `practice-consent-2026-10-29`). Text needs a verified cell (`kind = mobile`); phone needs any verified, unsuppressed number; email still has to match the verified login address. One number per channel is live at a time (the page withdraws the old grant before granting a new one). Turning practices on needs at least one current grant on a verified contact, on any channel.
+- Phone verification: `phone_verify_start` / `phone_verify_check` call Twilio Verify (a text to a cell, an automated call that reads the code to a landline). The code is checked server-side; the database is told through `verify_phone` with an HMAC proof under `PHONE_VERIFY_SECRET`, which the RPC recomputes from `safekeep_private.secrets`. A signed-in user calling the RPC directly cannot produce the proof. `user_contacts.verification_method` records how (`otp_sms`, `otp_call`, `auth_email`, `invite_token`).
+- Removing a number (`remove_phone`) keeps the row for consent history, suppresses it (`suppressed_at`, `suppression_reason = removed_by_user`), withdraws its grants and cancels its queue. The scheduler must skip suppressed contacts.
+- Preferences: per-channel monthly caps (`email_cap_per_month`, `text_cap_per_month`, `call_cap_per_month`, 0–7, defaults 4/4/2), `paused_until` (a date within the next year; queued practices before it are cancelled and the scheduler resumes on its own), `alerts_opt_in`. The seven-a-month hard cap across channels and the never-two-in-a-day rule are the scheduler's to enforce.
+- Family: `report_recipients` (up to five active per participant, add/remove, `unsubscribe_token_hash` filled by the report job). Who sponsors whom waits for subscription_members; the page shows a placeholder line.
+- Deletion and export: `request_deletion` withdraws every grant, turns practice off, cancels the queue, removes report recipients, records the request in `account_deletions` and signs the person out everywhere; signing in within 30 days shows a banner with `cancel_deletion`. `export` returns one JSON file of everything the account holds, downloaded while signed in (a mailed copy waits for the transactional email provider). The hard delete is `netlify/functions/scheduled-cleanup.mjs`, daily, which also removes unconfirmed sign-ups older than 30 days.
+
+Before deploying:
+
+1. Apply database/settings.sql, then `insert into safekeep_private.secrets values ('phone_verify_proof','<value>')` with the same value as `PHONE_VERIFY_SECRET` in the Functions environment. Until both are set, verification replies "Phone verification isn’t available yet."
+2. Twilio Verify: create a Verify service, set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`. Verify's own texts and calls are not A2P practice traffic, but confirm with Twilio that the service is approved for the call channel before landlines are offered.
+3. Set `SUPABASE_SERVICE_ROLE_KEY` for the scheduled cleanup function only (Netlify lets a variable be scoped to functions; keep it out of any request-path function and out of client code). The job skips with a note until it is set.
+4. The account page offers channel consent only after a return from Stripe or once any consent exists (page-level guard, as in the sign-up handoff); the server-side gate arrives with the subscriptions table.
+
 ## Supabase state
 
-Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, then signup-terms.sql once when provisioning a separate environment.
+Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, then settings.sql once when provisioning a separate environment.
 
 Email auth is enabled, email auto-confirmation is disabled, anonymous users and phone login are disabled (verified through public Auth settings). Never turn on auto-confirmation as a delivery workaround.
 
@@ -47,7 +65,7 @@ Email auth is enabled, email auto-confirmation is disabled, anonymous users and 
 5. Set the Supabase password policy to at least 12 characters (the application also enforces 12–128), enable leaked-password protection where available, review Auth rate limits, and add bot protection before public enrollment. Configure equivalent edge/IP controls on the account function; server-to-server Auth calls can share network rate limits. Avoid request-body logging and analytics on /account/.
 6. Run a real mailbox acceptance test on the deployment: signup → email verification → profile → add phone → consent → preferences → sign out → sign in → reset email → set password → old password rejected → new password accepted. Check code replay and expiry, resend behavior, two-account isolation, mobile form layout and error messaging. Do not mark these passed from mocked endpoint tests.
 
-MFA enrollment, self-service email/phone editing and deletion, account export/deletion, caregivers, live messaging and billing are not in this change. Do not advertise these as implemented. Production personal-data collection should wait for retention/deletion handling and the launch checks above.
+MFA enrollment, self-service email editing, caregivers, live messaging and billing are not built. Do not advertise these as implemented. Production personal-data collection should wait for retention/deletion handling and the launch checks above.
 
 ## Verification performed
 

@@ -10,6 +10,8 @@ function setup(overrides={}) {
  const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:(_url,_key,opts)=>{options=opts;return client;}});
  return {handler,calls,get options(){return options;}};
 }
+// A chainable stand-in for supabase-js queries: every filter returns the builder, terminal calls resolve rows per table.
+function fakeFrom(rows={}){return table=>{const data=rows[table]||[];const b={};for(const m of ['select','eq','is','order'])b[m]=()=>b;b.maybeSingle=async()=>({data:data[0]||null,error:null});b.then=(ok)=>ok({data,error:null});return b;};}
 test('password policy enforces bounds without trimming passwords',()=>{
  assert.throws(()=>checkPassword('short'));assert.throws(()=>checkPassword('a'.repeat(129)));assert.equal(checkPassword('a'.repeat(12)),'a'.repeat(12));
 });
@@ -113,7 +115,7 @@ test('a wrong or expired code never creates a session',async()=>{
 });
 test('terms recorded once: a verified session whose acceptance is already recorded does not write again',async()=>{
  const calls=[];
- const from=()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null,error:null}),order:async()=>({data:[],error:null})})})});
+ const from=fakeFrom();
  const user={id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_signup:{terms_accepted_at:'2026-10-29T10:00:00.000Z',recorded:true,first_name:'Ian',adult_confirmed_at:'yes'},safekeep_intent:{plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom'}}};
  const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user}}),updateUser:async()=>{throw new Error('should not update');}},rpc:async(name,args)=>{calls.push({name,args});return {data:{},error:null};},from})});
  const r=await handler(request());const body=await r.json();
@@ -156,4 +158,60 @@ test('the intent action stamps when the plan was chosen so the sign-in path can 
  assert.equal((await s.handler(request({action:'intent',payload:{plan:'family',billing:'monthly',role:'admin'}}))).status,200);
  assert.equal(updated.data.safekeep_intent.plan,'family');assert.ok(updated.data.safekeep_intent.updated_at);assert.equal(updated.data.safekeep_intent.role,undefined);
  assert.equal((await s.handler(request({action:'intent',payload:{plan:'family'}}))).status,400);
+});
+// Settings (PRD "Settings" section): phone verification through Twilio Verify with a server-only proof, export, deletion.
+import {phoneProof,verificationChannel} from '../netlify/functions/account.mjs';
+import {runCleanup,DELETE_AFTER_DAYS} from '../netlify/functions/scheduled-cleanup.mjs';
+const twilioEnv={APP_ORIGIN:origin,TWILIO_ACCOUNT_SID:'AC1',TWILIO_AUTH_TOKEN:'tok',TWILIO_VERIFY_SERVICE_SID:'VA1',PHONE_VERIFY_SECRET:'proof-secret'};
+const verifiedUser={id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{}};
+test('phone verification is unavailable until Twilio is configured, and cells get a text while landlines get a call',async()=>{
+ const s=setup();const r=await s.handler(request({action:'phone_verify_start',payload:{contact_id:'11111111-1111-4111-8111-111111111111'}}));assert.equal(r.status,503);
+ assert.equal(verificationChannel('mobile'),'sms');assert.equal(verificationChannel('home'),'call');assert.equal(verificationChannel('office'),'call');
+});
+test('starting verification sends the code to the stored number, never to a number from the request',async()=>{
+ const twilioCalls=[];const fetcher=async(url,init)=>{twilioCalls.push({url,body:init.body,auth:init.headers.Authorization});return {ok:true,status:201,json:async()=>({status:'pending'})};};
+ const from=fakeFrom({user_contacts:[{id:'11111111-1111-4111-8111-111111111111',kind:'mobile',normalized_value:'+12125550123',verified_at:null}]});
+ const handler=makeHandler({env:twilioEnv,fetcher,createClient:()=>({auth:{getUser:async()=>({data:{user:verifiedUser}})},from})});
+ const r=await handler(request({action:'phone_verify_start',payload:{contact_id:'11111111-1111-4111-8111-111111111111',to:'+19995550000'}}));
+ assert.equal(r.status,200);assert.match((await r.json()).message,/texted/);
+ assert.match(twilioCalls[0].url,/\/Services\/VA1\/Verifications$/);assert.equal(twilioCalls[0].body.get('To'),'+12125550123');assert.equal(twilioCalls[0].body.get('Channel'),'sms');assert.match(twilioCalls[0].auth,/^Basic /);
+ const missing=await handler(request({action:'phone_verify_start',payload:{contact_id:'not-a-uuid'}}));assert.equal(missing.status,404);
+});
+test('an approved code records verification through the proof; a rejected code records nothing',async()=>{
+ let approved=false;const calls=[];
+ const fetcher=async()=>({ok:true,status:200,json:async()=>({status:approved?'approved':'pending'})});
+ const from=fakeFrom({user_contacts:[{id:'11111111-1111-4111-8111-111111111111',kind:'home',normalized_value:'+12125550124',verified_at:null}]});
+ const handler=makeHandler({env:twilioEnv,fetcher,createClient:()=>({auth:{getUser:async()=>({data:{user:verifiedUser}})},from,rpc:async(name,args)=>{calls.push(args);return {data:{saved:true},error:null};}})});
+ assert.equal((await handler(request({action:'phone_verify_check',payload:{contact_id:'11111111-1111-4111-8111-111111111111',code:'123456'}}))).status,400);assert.equal(calls.length,0);
+ approved=true;
+ const r=await handler(request({action:'phone_verify_check',payload:{contact_id:'11111111-1111-4111-8111-111111111111',code:'123 456'}}));assert.equal(r.status,200);
+ assert.equal(calls[0].action,'verify_phone');assert.equal(calls[0].payload.method,'otp_call');
+ assert.equal(calls[0].payload.proof,phoneProof('proof-secret','user-a','11111111-1111-4111-8111-111111111111','otp_call'));
+ assert.notEqual(calls[0].payload.proof,phoneProof('proof-secret','user-a','11111111-1111-4111-8111-111111111111','otp_sms'));
+});
+test('export returns the account as a downloadable file scoped to the signed-in user',async()=>{
+ const seen=[];const from=table=>{seen.push(table);return fakeFrom({user_profiles:[{user_id:'user-a',first_name:'A'}]})(table);};
+ const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user:verifiedUser}})},from})});
+ const r=await handler(request({action:'export'}));assert.equal(r.status,200);assert.match(r.headers.get('content-disposition'),/attachment; filename="safekeep-export-/);
+ const body=await r.json();assert.equal(body.email,'a@example.com');assert.deepEqual(body.profile,[{user_id:'user-a',first_name:'A'}]);assert.ok(seen.includes('consent_events')&&seen.includes('report_recipients'));
+});
+test('requesting deletion runs the database action and signs out everywhere',async()=>{
+ const order=[];const s=setup({signOut:async({scope})=>{order.push('signout:'+scope);return {data:{},error:null};}});
+ const r=await s.handler(request({action:'request_deletion'}));assert.equal(r.status,200);
+ assert.equal(s.calls[0].args.action,'request_deletion');assert.deepEqual(order,['signout:global']);
+});
+test('settings passthrough actions reach the database action with their payloads',async()=>{
+ const s=setup();
+ for(const [action,payload] of [['remove_phone',{contact_id:'c1'}],['add_report_recipient',{name:'D',email:'d@example.com'}],['remove_report_recipient',{recipient_id:'r1'}],['cancel_deletion',undefined]]){
+  assert.equal((await s.handler(request({action,payload}))).status,200);
+ }
+ assert.deepEqual(s.calls.map(c=>c.args.action),['remove_phone','add_report_recipient','remove_report_recipient','cancel_deletion']);
+});
+test('the daily cleanup deletes expired deletion requests and stale unconfirmed sign-ups, and nothing else',async()=>{
+ const now=()=>new Date('2026-12-01T00:00:00Z');const deleted=[];
+ const users=[{id:'old-unconfirmed',email_confirmed_at:null,created_at:'2026-10-01T00:00:00Z'},{id:'new-unconfirmed',email_confirmed_at:null,created_at:'2026-11-20T00:00:00Z'},{id:'confirmed',email_confirmed_at:'x',created_at:'2026-01-01T00:00:00Z'},{id:'anon',email_confirmed_at:null,is_anonymous:true,created_at:'2026-01-01T00:00:00Z'}];
+ const makeClient=()=>({from:()=>{const b={};for(const m of ['select','is','lte'])b[m]=()=>b;b.then=ok=>ok({data:[{user_id:'requested-old'}],error:null});return b;},auth:{admin:{listUsers:async()=>({data:{users},error:null}),deleteUser:async id=>{deleted.push(id);return {error:null};}}}});
+ assert.deepEqual(await runCleanup({env:{},now,makeClient}),{skipped:'SUPABASE_SERVICE_ROLE_KEY is not set'});
+ const result=await runCleanup({env:{SUPABASE_SERVICE_ROLE_KEY:'service'},now,makeClient});
+ assert.deepEqual(deleted.sort(),['old-unconfirmed','requested-old']);assert.equal(result.deleted,2);assert.equal(result.requested,1);assert.equal(result.unconfirmed,1);assert.equal(DELETE_AFTER_DAYS,30);
 });
