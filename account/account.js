@@ -5,6 +5,7 @@ const recovery=params.get('flow')==='recovery';
 // Returning from Stripe. The redirect is not proof of payment; until the billing phase confirms it by webhook,
 // the page thanks the person and keeps the payment button available in case they didn't finish.
 const checkoutReturn=params.get('checkout')==='success';
+const welcome=params.get('welcome')==='1';
 // Remove auth codes from the address bar before any further navigation.
 if(location.search || location.hash) history.replaceState({},'',location.pathname);
 const message=(text,error=false)=>{ $('status').textContent=text; $('status').classList.toggle('error',error); };
@@ -65,6 +66,8 @@ async function refresh(){
   $('subscription-detail').textContent=(live?seats:'')+(sub.refunded_at?` Refunded on ${longDate(sub.refunded_at)}.`:'')+(!live?' Choose a plan below to start again.':'');
   $('portal-form').hidden=!state.billing_portal;
  }
+ // Seats: who is on the plan (first name and channel names only), invitations still out, and the invite form.
+ renderSeats(live,intent);
  const membership=state.membership;
  $('membership-section').hidden=!membership;
  if(membership){const ends=membership.cancel_at?` It is set to end on ${longDate(membership.cancel_at)}.`:LIVE.includes(membership.status)?'':` That plan has ended, so practice has stopped.`;$('membership-summary').textContent=`You’re on ${membership.sponsor_name}’s ${membership.plan?PLAN_NAMES[membership.plan]+' plan':'plan'}.${ends}`;}
@@ -80,7 +83,7 @@ async function refresh(){
   $('paid-copy').textContent='Stripe will email your receipt. '+(live?'Your plan is active.':planLine(intent)+' It can take a minute for Stripe to confirm the payment; reload this page shortly. If the payment didn’t go through, the button below is still there.');
   const forOther=intent.help_for==='other';
   $('invite-next').hidden=!forOther;$('self-next').hidden=forOther;
-  if(forOther){$('invitee-name').textContent=intent.invitee_name||'them';$('invitee-details').replaceChildren(...[['Name',intent.invitee_name],['Email',intent.invitee_email],['Phone',intent.invitee_phone]].filter(([,v])=>v).map(([k,v])=>{const li=document.createElement('li');li.textContent=`${k}: ${v}`;return li;}));}
+  if(forOther)$('invitee-name').textContent=intent.invitee_name||'them';
  }
  // The profile form leads only until it is saved; after that it lives with the other settings, below the one
  // thing the person came to do.
@@ -91,11 +94,11 @@ async function refresh(){
  const hasConsent=(state.consents||[]).length>0;
  $('practice-section').hidden=!(live||(membership&&LIVE.includes(membership.status))||checkoutReturn||hasConsent||!!state.preferences?.practice_enabled);
  // Nothing else is offered while the terms need accepting.
- for(const id of ['checkout-section','plan-section','paid-section','subscription-section','membership-section','settings'])if(!termsCurrent)$(id).hidden=true;
+ for(const id of ['checkout-section','plan-section','paid-section','subscription-section','seats-section','membership-section','settings'])if(!termsCurrent)$(id).hidden=true;
  // Pending deletion: one banner, one button to keep the account; everything else waits.
  const deletion=state.deletion;
  $('deletion-section').hidden=!deletion;
- if(deletion){$('deletion-copy').textContent=`You asked us to delete your account. Practice has stopped and your consents are withdrawn. The account and its history will be erased on ${new Date(deletion.delete_after).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})} unless you choose to keep it.`;for(const id of ['checkout-section','plan-section','paid-section','subscription-section','membership-section','settings'])$(id).hidden=true;}
+ if(deletion){$('deletion-copy').textContent=`You asked us to delete your account. Practice has stopped and your consents are withdrawn. The account and its history will be erased on ${new Date(deletion.delete_after).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})} unless you choose to keep it.`;for(const id of ['checkout-section','plan-section','paid-section','subscription-section','seats-section','membership-section','settings'])$(id).hidden=true;}
  renderContacts();
  renderChannels();
  const prefs=state.preferences||{};
@@ -107,7 +110,7 @@ async function refresh(){
  $('sponsor-line').textContent=intent.help_for==='other'?'You pay for this plan. The people you invite will see this page for their own account.':'You pay for your own plan. When someone else sponsors your practice, their name will show here.';
  $('recipients').replaceChildren(...(state.report_recipients||[]).map(r=>{const li=document.createElement('li');const span=document.createElement('span');span.textContent=`${r.name} — ${r.email}`;const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='Remove';remove.onclick=()=>run(null,()=>api({action:'remove_report_recipient',payload:{recipient_id:r.id}}));li.append(span,remove);return li;}));
  $('recipient-form').querySelector('button').disabled=(state.report_recipients||[]).length>=5;
- message(deletion?'Your account is set to be deleted. Choose "Keep my account" to stay.':!termsCurrent?'Please accept the current terms to continue.':!hasProfile?'Email verified. One more step before payment: finish your profile.':checkoutReturn?'Thank you. Your account is ready.':live||membership?'Your account is ready to manage.':sub?'Your plan has ended. Choose a plan to start again.':intent.checkout_started_at?'Your account is ready to manage.':'Your profile is saved. Choose your plan to continue to payment.');
+ message(deletion?'Your account is set to be deleted. Choose "Keep my account" to stay.':!termsCurrent?'Please accept the current terms to continue.':!hasProfile?'Email verified. One more step before payment: finish your profile.':checkoutReturn?'Thank you. Your account is ready.':welcome&&membership?`Welcome. You’re on ${membership.sponsor_name}’s plan. Choose how you’d like to practise below.`:live||membership?'Your account is ready to manage.':sub?'Your plan has ended. Choose a plan to start again.':intent.checkout_started_at?'Your account is ready to manage.':'Your profile is saved. Choose your plan to continue to payment.');
 }
 async function run(form,work){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{const result=await work();form?.reset();await refresh();message(result.message||'Saved.');}catch(error){message(error.message,true);}finally{buttons.forEach(b=>b.disabled=false);}}
 const zones=Intl.supportedValuesOf?Intl.supportedValuesOf('timeZone'):['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','UTC'];
@@ -185,6 +188,26 @@ async function startCheckout(payload){const buttons=[...document.querySelectorAl
 $('checkout-form').addEventListener('submit',event=>{event.preventDefault();startCheckout({});});
 $('change-plan').addEventListener('click',()=>{$('checkout-section').hidden=true;$('plan-section').hidden=false;$('plan-section').scrollIntoView({behavior:'smooth',block:'start'});});
 $('plan-form').addEventListener('submit',event=>{event.preventDefault();if(!event.currentTarget.reportValidity())return;startCheckout(fields(event.currentTarget));});
+const CHANNEL_NAMES={email:'email',text:'text',phone:'phone calls'};
+function renderSeats(live,intent){
+ const sub=state.subscription;$('seats-section').hidden=!live;if(!live)return;
+ const seats=state.seats||[],used=seats.length,total=sub.seats||1;
+ $('seats-summary').textContent=`${used} of ${total} ${total===1?'seat':'seats'} in use.`;
+ $('seats').replaceChildren(...seats.map(seat=>{
+  const li=document.createElement('li'),span=document.createElement('span');
+  if(seat.kind==='participant'){const ch=(seat.channels||[]).map(c=>CHANNEL_NAMES[c]||c);span.textContent=`${seat.name}: ${ch.length?'practising by '+ch.join(' and '):'joined, hasn’t chosen how to practise yet'}${seat.status==='paused'?' (paused)':''}`;li.append(span);
+   const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent='Remove';b.onclick=()=>{if(confirm(`Take ${seat.name} off your plan? Their practice stops and we’ll tell them by email.`))run(null,()=>api({action:'remove_participant',payload:{member_id:seat.id}}));};li.append(b);}
+  else{span.textContent=`${seat.name} (${seat.email}): invited, waiting for an answer until ${longDate(seat.expires_at)}`;li.append(span);
+   const r=document.createElement('button');r.type='button';r.className='secondary';r.textContent='Resend';r.onclick=()=>run(null,()=>api({action:'resend_invite',payload:{invitation_id:seat.id}}));
+   const c=document.createElement('button');c.type='button';c.className='secondary';c.textContent='Cancel invitation';c.onclick=()=>{if(confirm(`Cancel ${seat.name}’s invitation? The link we sent will stop working.`))run(null,()=>api({action:'revoke_invite',payload:{invitation_id:seat.id}}));};li.append(r,c);}
+  return li;}));
+ const free=used<total;
+ $('invite-form').hidden=!free;$('join-form').hidden=!(free&&!state.practising);
+ // First visit after paying for someone else: their details from the sign-up dialog are ready to send.
+ const f=$('invite-form');if(free&&intent.help_for==='other'&&!f.dataset.prefilled&&!seats.some(s=>s.email&&s.email===intent.invitee_email)){f.dataset.prefilled='1';fill(f,{invitee_name:intent.invitee_name||'',invitee_email:intent.invitee_email||'',invitee_phone:intent.invitee_phone||''});}
+}
+$('invite-form').addEventListener('submit',event=>{event.preventDefault();const form=event.currentTarget;if(!form.reportValidity())return;run(form,()=>api({action:'invite',payload:fields(form)}));});
+$('join-form').addEventListener('submit',event=>{event.preventDefault();run(null,()=>api({action:'join_own_plan'}));});
 $('portal-form').addEventListener('submit',async event=>{event.preventDefault();const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{message('Opening your subscription in Stripe…');const r=await billingApi('portal');location.href=r.url;}catch(error){message(error.message,true);buttons.forEach(b=>b.disabled=false);}});
 $('leave-form').addEventListener('submit',event=>{event.preventDefault();if(!confirm('Leave this plan? Your practice stops right away and the person paying is told.'))return;run(null,async()=>{await api({action:'leave_subscription'});return {message:'You’ve left the plan. Practice has stopped, and your account is still yours.'};});});
 $('logout').addEventListener('click',()=>run(null,()=>api({action:'logout'})));

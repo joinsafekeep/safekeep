@@ -44,7 +44,7 @@ function fakeAdmin(seed = {}) {
   return b;
  };
  return { tables, rpcCalls, from, rpc: async (name, args) => { rpcCalls.push({ name, args }); if (name === 'end_subscription') { const sub = tables.subscriptions.find(s => s.id === args.sid); sub.ended_at = args.ended; } return { data: { ended: true }, error: null }; },
-  auth: { admin: { getUserById: async id => ({ data: { user: id === USER ? { id, email: 'sponsor@example.com' } : null } }) } } };
+  auth: { admin: { getUserById: async id => ({ data: { user: id === USER ? { id, email: 'sponsor@example.com', user_metadata: seed.__meta || {} } : null } }) } } };
 }
 const stripeSub = (over = {}) => ({ id: 'sub_1', object: 'subscription', customer: 'cus_1', status: 'active', items: { data: [{ price: { id: 'price_family_annual' }, current_period_end: 1793000000 }] }, cancel_at: null, canceled_at: null, ended_at: null, ...over });
 const event = (type, object, id = 'evt_' + type) => JSON.stringify({ id, type, created: 1761768000, data: { object } });
@@ -78,7 +78,7 @@ test('a Payment Link checkout with the account id creates the plan and the spons
  const r = await handler(post(event('checkout.session.completed', { mode: 'subscription', subscription: 'sub_1', customer: 'cus_1', client_reference_id: USER })));
  assert.equal(r.status, 200); const body = await r.json(); assert.equal(body.status, 'active');
  const sub = admin.tables.subscriptions[0]; assert.equal(sub.sponsor_user_id, USER); assert.equal(sub.seats, 4); assert.equal(sub.plan, 'family'); assert.equal(sub.stripe_subscription_id, 'sub_1');
- assert.deepEqual(admin.tables.subscription_members.map(m => [m.user_id, m.role, m.status]), [[USER, 'sponsor', 'active']]);
+ assert.deepEqual(admin.tables.subscription_members.map(m => [m.user_id, m.role, m.status]), [[USER, 'sponsor', 'active'], [USER, 'participant', 'active']]);
  const legacy = await handler(post(event('checkout.session.completed', { mode: 'subscription', subscription: 'sub_2', customer: 'cus_2', client_reference_id: '5ed537a4-d50f-4b1c-a6a3-f0fdae3e0a09' }, 'evt_legacy')));
  assert.match((await legacy.json()).skipped, /not an account/); assert.equal(admin.tables.subscriptions.length, 1);
 });
@@ -147,4 +147,11 @@ test('terms accepted on Stripe’s checkout page are recorded as a checkout acce
  const handler=webhookHandler({env,makeClient:()=>admin,now:()=>NOW,fetcher:stripeApi({sub_1:stripeSub()})});
  await handler(post(event('checkout.session.completed',{mode:'subscription',subscription:'sub_1',customer:'cus_1',client_reference_id:USER,consent:{terms_of_service:'accepted'},created:1761768000},'evt_terms')));
  assert.deepEqual(admin.tables.policy_acceptances.map(r=>[r.document,r.source]).sort(),[['privacy','checkout'],['terms','checkout']]);
+});
+
+test('a sponsor buying for someone else gets the sponsor row only; their seats stay free for invitations', async () => {
+ const admin = fakeAdmin({ __meta: { safekeep_intent: { help_for: 'other' } } });
+ const handler = webhookHandler({ env, makeClient: () => admin, now: () => NOW, fetcher: stripeApi({ sub_1: stripeSub() }) });
+ await handler(post(event('checkout.session.completed', { mode: 'subscription', subscription: 'sub_1', customer: 'cus_1', client_reference_id: USER }, 'evt_other')));
+ assert.deepEqual(admin.tables.subscription_members.map(m => m.role), ['sponsor']);
 });

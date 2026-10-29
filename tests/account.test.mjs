@@ -117,9 +117,9 @@ test('terms recorded once: a verified session whose acceptance is already record
  const calls=[];
  const from=fakeFrom();
  const user={id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_signup:{terms_accepted_at:'2026-10-29T10:00:00.000Z',recorded:true,first_name:'Ian',adult_confirmed_at:'yes'},safekeep_intent:{plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom'}}};
- const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user}}),updateUser:async()=>{throw new Error('should not update');}},rpc:async(name,args)=>{if(name==='my_sponsorship')return {data:[],error:null};calls.push({name,args});return {data:{},error:null};},from})});
+ const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user}}),updateUser:async()=>{throw new Error('should not update');}},rpc:async(name,args)=>{if(['my_sponsorship','sponsor_seats'].includes(name))return {data:[],error:null};if(name==='is_active_participant')return {data:false,error:null};calls.push({name,args});return {data:{},error:null};},from})});
  const r=await handler(request());const body=await r.json();
- assert.equal(r.status,200);assert.deepEqual(calls.map(c=>c.args.action),['sync_email']);assert.equal(body.subscription,null);assert.equal(body.membership,null);
+ assert.equal(r.status,200);assert.deepEqual(calls.map(c=>c.args.action),['sync_email']);assert.equal(body.subscription,null);assert.equal(body.membership,null);assert.deepEqual(body.seats,[]);
  assert.deepEqual(body.intent,{plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom'});assert.deepEqual(body.signup,{first_name:'Ian',adult_confirmed:true});assert.equal(body.policy_version,POLICY_VERSION);
 });
 test('checkout hands off to the Payment Link keyed to the account, and needs a profile first',async()=>{
@@ -249,4 +249,47 @@ test('Twilio credentials prefer the restricted API key over the auth token',()=>
  assert.equal(dec(twilioAuth({TWILIO_API_KEY_SID:'SK1',TWILIO_API_KEY_SECRET:'sec',TWILIO_ACCOUNT_SID:'AC1',TWILIO_AUTH_TOKEN:'tok'})),'SK1:sec');
  assert.equal(dec(twilioAuth({TWILIO_ACCOUNT_SID:'AC1',TWILIO_AUTH_TOKEN:'tok'})),'AC1:tok');
  assert.equal(twilioAuth({}),null);
+});
+
+// Phase 3: invitations through the account function and the public invite endpoint.
+import {makeHandler as invitesHandler} from '../netlify/functions/invites.mjs';
+import {runInvitationJob} from '../netlify/functions/scheduled-invitations.mjs';
+test('invitation actions map onto the database action and never expose a token',async()=>{
+ const calls=[];let updated;
+ const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user:{id:'mom',email:'mom@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_intent:{invite_token:'a'.repeat(64),plan:null}}}}}),updateUser:async a=>{updated=a;return {data:{},error:null};}},rpc:async(name,args)=>{calls.push({name,args});return {data:{saved:true},error:null};}})});
+ for(const [action,payload] of [['invite',{invitee_name:'Mom',invitee_email:'mom@example.com'}],['resend_invite',{invitation_id:'i1'}],['revoke_invite',{invitation_id:'i1'}],['join_own_plan',undefined],['remove_participant',{member_id:'m1'}],['accept_invitation',{token:'a'.repeat(64)}]]){
+  const r=await handler(request({action,payload}));assert.equal(r.status,200);assert.ok(!JSON.stringify(await r.json()).match(/[0-9a-f]{64}/));
+ }
+ assert.deepEqual(calls.map(c=>c.args.action),['invite','resend','revoke','join_own_plan','remove_participant','accept']);
+ assert.equal(calls.every(c=>c.name==='invitation_action'),true);
+ assert.equal(updated.data.safekeep_intent.invite_token,undefined);
+});
+test('a signup started from an invitation records the terms as invite_accept',async()=>{
+ const s=setup({verifyOtp:async()=>({data:{user:{id:'u',email_confirmed_at:'yes',user_metadata:{safekeep_signup:{terms_accepted_at:'2026-10-29T10:00:00.000Z'},safekeep_intent:{invite_token:'b'.repeat(64)}}}},error:null}),updateUser:async()=>({data:{},error:null})});
+ await s.handler(request({action:'verify_code',email:'mom@example.com',code:'123456'}));
+ assert.equal(s.calls[1].args.payload.source,'invite_accept');
+ assert.deepEqual(checkIntent({invite_token:'c'.repeat(64),plan:'pairs'}),{plan:'pairs',invite_token:'c'.repeat(64)});
+ assert.equal(checkIntent({invite_token:'not-a-token'}),null);
+});
+test('the public invite endpoint looks up by token and declines, as the anonymous role',async()=>{
+ const rpcs=[];let keyUsed;
+ const makeClient=(_u,key)=>{keyUsed=key;return {rpc:async(name,args)=>{rpcs.push({name,args});if(name==='invitation_by_token')return {data:args.token==='d'.repeat(64)?[{invitee_name:'Mom',sponsor_name:'Ian'}]:[],error:null};return {data:{saved:true},error:null};}};};
+ const handler=invitesHandler({env:{APP_ORIGIN:origin},makeClient});
+ const found=await (await handler(new Request(origin+'/api/invites?t='+'d'.repeat(64)))).json();assert.equal(found.found,true);assert.equal(found.invitation.sponsor_name,'Ian');
+ assert.equal((await (await handler(new Request(origin+'/api/invites?t=nope'))).json()).found,false);
+ assert.match(keyUsed,/^sb_publishable_/);
+ const d=await handler(new Request(origin+'/api/invites',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({action:'decline',token:'d'.repeat(64)})}));
+ assert.equal((await d.json()).declined,true);
+ assert.equal((await handler(new Request(origin+'/api/invites',{method:'POST',headers:{origin:'https://evil.example','content-type':'application/json'},body:'{}'}))).status,403);
+ assert.deepEqual(rpcs.map(r=>r.name),['invitation_by_token','decline_invitation']);
+});
+test('the daily invitation job reminds at day 3 and day 10, then lapses at day 14 and tells the sponsor once',async()=>{
+ const NOW=new Date('2026-11-12T12:00:00Z');const day=n=>new Date(NOW.getTime()-n*86400000).toISOString();
+ const rows=[{id:'d2',inviter_user_id:'s',invitee_email:'a@x.com',invitee_name:'A',created_at:day(2),expires_at:day(-12)},{id:'d4',inviter_user_id:'s',invitee_email:'b@x.com',invitee_name:'B',created_at:day(4),expires_at:day(-10)},{id:'d11',inviter_user_id:'s',invitee_email:'c@x.com',invitee_name:'C',created_at:day(11),expires_at:day(-3),reminded_day3_at:day(8)},{id:'d15',inviter_user_id:'s',invitee_email:'d@x.com',invitee_name:'D',created_at:day(15),expires_at:day(1)}];
+ const emails=[],updates=[];
+ const makeClient=()=>({from:table=>{const b={};for(const m of ['select','is','eq'])b[m]=()=>b;b.maybeSingle=async()=>({data:{first_name:'Ian'},error:null});b.update=v=>({eq:async(_c,id)=>{updates.push([id,Object.keys(v).find(k=>k!=='updated_at')]);return {error:null};}});b.insert=async v=>{emails.push(v);return {error:null};};b.then=ok=>ok({data:table==='participant_invitations'?rows:[],error:null});return b;},auth:{admin:{getUserById:async()=>({data:{user:{email:'sponsor@x.com'}}})}}});
+ const result=await runInvitationJob({env:{SUPABASE_SERVICE_ROLE_KEY:'s'},now:()=>NOW,makeClient});
+ assert.deepEqual(result,{open:4,reminders:2,expired:1});
+ assert.deepEqual(updates.sort(),[['d11','reminded_day10_at'],['d15','expired_notified_at'],['d4','reminded_day3_at']]);
+ assert.deepEqual(emails.map(e=>[e.to_email,e.kind]).sort(),[['b@x.com','invitation_reminder'],['c@x.com','invitation_reminder'],['sponsor@x.com','invitation_expired']]);
 });

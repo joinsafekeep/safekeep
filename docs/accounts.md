@@ -78,9 +78,21 @@ The `checkout` action now creates a Stripe Checkout Session when `STRIPE_SECRET_
 - Twilio: `TWILIO_API_KEY_SID` + `TWILIO_API_KEY_SECRET` (a restricted key) are preferred over `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`.
 - Admin attach for pre-account Payment Link customers is not built: the six live prices had no active subscriptions when this shipped, so there is no one to attach.
 
+## Invitations (added October 29, 2026)
+
+Built to "Gifting to a family member" in the MVP PRD. Migration: database/invitations.sql (tests: database/invitations-tests.sql).
+
+- A sponsor invites from the Your seats section of /account/ (first name, email, optional phone used only to prefill, optional note). The database writes the invitation and queues the email; the link is `<app_origin>/invite/?t=<token>`, where `app_origin` comes from `safekeep_private.secrets`, never from a request. Seats in use = participants plus invitations still out; a full plan refuses another.
+- The invited person opens /invite/, sees who sent it and the note, and either creates an account (email fixed to the invited address, 6-digit code like any sign-up), signs in, or says no thanks without an account. **Acceptance requires a signed-in user whose verified login email equals the invited address**, so the token only identifies the invitation: a sponsor who sees their own outgoing link still cannot accept for someone else, and no service-role key is needed on the request path. This replaces the PRD's "the invite token stands in for email verification", which would have needed the service role on a public page and let anyone holding the link create the account.
+- Resend rotates the token (the old link stops working) and restarts 14 days. Cancel revokes. A daily job (`scheduled-invitations.mjs`) reminds on day 3 and day 10 and, on day 14, lapses the invitation and tells the sponsor once. Declining tells the sponsor kindly. When a plan ends, pending invitations are revoked.
+- A sponsor who said the plan is for themself gets a participant seat at checkout; "Add myself" does the same later if a seat is free. `subscription_members` is now one row per role; `is_active_participant` counts participant seats only. One live participant seat per person (a unique index).
+- Sponsors see, through `sponsor_seats()`, each participant's first name, status and the names of the channels they turned on, never an address, number or schedule. Removing a participant stops their practice and tells them; their account stays.
+
+Before deploying: apply database/invitations.sql, then `insert into safekeep_private.secrets values ('app_origin','https://joinsafekeep.com')`. The invite email waits for the email sender (SendGrid).
+
 ## Supabase state
 
-Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, settings.sql, billing-cancellation.sql, then billing-checkout.sql once when provisioning a separate environment.
+Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, settings.sql, billing-cancellation.sql, billing-checkout.sql, then invitations.sql once when provisioning a separate environment.
 
 Email auth is enabled, email auto-confirmation is disabled, anonymous users and phone login are disabled (verified through public Auth settings). Never turn on auto-confirmation as a delivery workaround.
 

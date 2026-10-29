@@ -22,7 +22,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 do $$ begin
  if (select count(*) from public.subscriptions)<>1 or (select count(*) from public.subscription_members)<>2 then raise exception 'Sponsor cannot read their plan'; end if;
- if public.is_active_participant('11111111-1111-4111-8111-111111111111') is not true then raise exception 'Sponsor seat not active'; end if;
+ -- Paying is not practising: a sponsor counts as active only with a participant seat (invitations.sql).
+ if public.is_active_participant('11111111-1111-4111-8111-111111111111') then raise exception 'Sponsor counted as practising'; end if;
  begin perform public.is_active_participant('22222222-2222-4222-8222-222222222222'); raise exception 'Checked someone else'; exception when insufficient_privilege then null; end;
  begin perform public.account_action('leave_subscription'); raise exception 'Sponsor left their own plan'; exception when raise_exception then if sqlerrm='Sponsor left their own plan' then raise; end if; end;
  begin perform public.end_subscription('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'); raise exception 'User ended a subscription'; exception when insufficient_privilege then null; end;
@@ -61,15 +62,15 @@ do $$ begin
  if (select count(*) from public.outbound_emails where kind='subscription_ended')<>2 then raise exception 'Ending emails not queued'; end if;
  if (select count(*) from public.outbound_emails where to_email='participant@example.invalid' and kind='subscription_ended')<>1 then raise exception 'Participant not told'; end if;
  if (select ended_at from public.subscriptions where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') is null then raise exception 'ended_at not set'; end if;
- if public.is_active_participant('11111111-1111-4111-8111-111111111111') then raise exception 'Sponsor still active after end'; end if;
+ if public.is_active_participant('22222222-2222-4222-8222-222222222222') then raise exception 'Participant still active after end'; end if;
 end $$;
 -- Dunning grace: past due keeps a seat active for seven days, then not.
 update public.subscriptions set status='past_due', past_due_since=now()-interval '3 days';
-update public.subscription_members set status='active' where user_id='11111111-1111-4111-8111-111111111111';
+update public.subscription_members set status='active' where user_id='22222222-2222-4222-8222-222222222222';
 do $$ begin
- if not public.is_active_participant('11111111-1111-4111-8111-111111111111') then raise exception 'Grace period not honoured'; end if;
+ if not public.is_active_participant('22222222-2222-4222-8222-222222222222') then raise exception 'Grace period not honoured'; end if;
  update public.subscriptions set past_due_since=now()-interval '8 days';
- if public.is_active_participant('11111111-1111-4111-8111-111111111111') then raise exception 'Grace period not enforced'; end if;
+ if public.is_active_participant('22222222-2222-4222-8222-222222222222') then raise exception 'Grace period not enforced'; end if;
 end $$;
 rollback;
 select 'Cancellation tests passed; fixtures rolled back' as result;
