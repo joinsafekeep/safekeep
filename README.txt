@@ -14,6 +14,8 @@ UPDATE (Oct 25, 2026): The waitlist is now a sign-up flow. After contact details
 
 UPDATE (Oct 29, 2026): The plan step no longer sends people to a Payment Link. The dialog now creates the account (password, 18+, terms), verifies the email with the 6-digit code from the verification email, and continues on /account/ with the profile and then payment. The Payment Links moved to netlify/functions/account.mjs (checkout action) and are opened with client_reference_id set to the account's user id, so payments match accounts. /terms/ and /privacy/ are the documents the checkbox links to. Deployment steps are in docs/accounts.md under "Sign-up handoff".
 
+UPDATE (Oct 29, 2026, later): /account/ now has the Settings section of the MVP PRD: per-channel practice consent (email, text, phone), phone verification by code (Twilio Verify, once configured), per-channel monthly caps, pause until a date, the weekly-alert opt-in, report recipients, data export and self-service deletion with a 30-day grace period. Deployment steps are in docs/accounts.md under "Settings".
+
 SCAM ALERTS (added Oct 18, 2026)
 Articles live as markdown in content/scam-alerts/<slug>.md and publish at https://joinsafekeep.com/scam-alerts/<slug>. After adding or editing one, run:
 
