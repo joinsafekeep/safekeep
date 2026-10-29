@@ -12,6 +12,8 @@ UPDATE (Oct 11, 2026): Signups post to Formspree (form "Safekeep Waitlist", endp
 
 UPDATE (Oct 25, 2026): The waitlist is now a sign-up flow. After contact details (and the optional who-is-it-for steps), people choose a plan and billing period and are sent to a Stripe Payment Link. The six live links (products "Safekeep Individual", "Safekeep Pairs", "Safekeep Family") are set in STRIPE_LINKS in app.js, and each redirects to https://joinsafekeep.com/?signup=complete after payment. Subscribers manage or cancel their plan in the Stripe customer portal (https://billing.stripe.com/p/login/5kQ3cx5Mf4tk11Z7lt8Vi00), linked as "Manage subscription" in the footer; it returns them to https://joinsafekeep.com/. The session id is passed as client_reference_id, so Stripe payments can be matched to Formspree submissions. Until a link is filled in, choosing that plan saves the choice to Formspree and tells the person we'll email a payment link.
 
+UPDATE (Oct 29, 2026): The plan step no longer sends people to a Payment Link. The dialog now creates the account (password, 18+, terms), verifies the email with the 6-digit code from the verification email, and continues on /account/ with the profile and then payment. The Payment Links moved to netlify/functions/account.mjs (checkout action) and are opened with client_reference_id set to the account's user id, so payments match accounts. /terms/ and /privacy/ are the documents the checkbox links to. Deployment steps are in docs/accounts.md under "Sign-up handoff".
+
 SCAM ALERTS (added Oct 18, 2026)
 Articles live as markdown in content/scam-alerts/<slug>.md and publish at https://joinsafekeep.com/scam-alerts/<slug>. After adding or editing one, run:
 

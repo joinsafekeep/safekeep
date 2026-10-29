@@ -11,9 +11,27 @@ This change adds /account/ and a Netlify Function at /api/account. The marketing
 - Explicit email-practice opt-in and withdrawal, append-only consent history, quiet hours, frequency, pause. Email must match the current confirmed login address. No phone consent or sending is enabled yet. Queued practices are cancelled on withdrawal/pause; a future sender must also check current consent immediately before sending.
 - Database ownership checks, strict grants and a private privileged helper with explicit auth checks. End users cannot self-verify contacts or forge consent timestamps/policy versions.
 
+## Sign-up handoff (added October 29, 2026)
+
+The marketing dialog no longer ends at a Stripe Payment Link. After the plan step it creates the account (password, adult attestation, Terms of Service and Privacy Policy), verifies the email with the six-digit code from the verification email (the link still works in the same browser), then sends the person to /account/ for the profile and checkout. Built to the "Sign-up" section of the MVP PRD.
+
+- New /api/account actions: `verify_code` (email + code → session), `intent` (save a plan choice), `checkout` (returns the Stripe URL for the chosen plan with `client_reference_id` = user id and `prefilled_email`; an interim stand-in for /api/billing/checkout, same `{url}` response), `accept_policies` (re-acceptance after a version bump). `signup` now requires `terms_accepted: true` and accepts `first_name` and an `intent` object (`plan`, `billing`, `help_for`, `invitee_name`, `invitee_email`, `invitee_phone`, `lead_session_id`), validated and stored as user metadata (`safekeep_intent`, `safekeep_signup`). `state` returns `intent`, `signup`, `acceptances`, `policy_version` and `plans`.
+- Terms acceptance is recorded in `policy_acceptances` (database/signup-terms.sql) the first time a verified session exists, from the timestamp, version, hashed IP and user agent captured at sign-up. `POLICY_VERSION` in account.mjs is the version string; bump it when /terms/ or /privacy/ change and the account page re-prompts.
+- The adult attestation given at sign-up carries over to the profile form, so it is not asked twice.
+- Metadata is still untrusted for identity. The intent only decides which plan is offered and prefills the first invite; the acceptance record is about the user themself.
+
+Before deploying:
+
+1. Apply database/signup-terms.sql to the Supabase project (table, RLS, replaced `account_action`). The function fails on `state` until it is applied.
+2. In Supabase Auth email templates, add the code to the confirmation template alongside the link, for example `Your Safekeep code is {{ .Token }}` above `{{ .ConfirmationURL }}`. The dialog asks for the code; the link keeps working in the same browser.
+3. In the Stripe dashboard, change each Payment Link's "After payment" redirect to `https://joinsafekeep.com/account/?checkout=success`. Until then `/?signup=complete` forwards there.
+4. Optional, before public enrollment: Cloudflare Turnstile on the account-creation step. Set `TURNSTILE_SECRET_KEY` in the Functions environment and the site key in `data-turnstile-site-key` on the dialog in index.html and pricing.html (then rebuild scam-alerts). The contact step is untouched so the ads conversion is unaffected.
+5. Optional: `POLICY_IP_SALT` for the IP hash on acceptance records (defaults to the app origin).
+6. Still to build from the PRD: the 24h/72h "verified but never paid" reminders, the weekly cleanup of unconfirmed users older than 30 days, and the funnel events landing in the ads dashboard (they are sent as `signup_*` events to the Google tag; create conversions or reports for them).
+
 ## Supabase state
 
-Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql then account-onboarding.sql once when provisioning a separate environment.
+Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, then signup-terms.sql once when provisioning a separate environment.
 
 Email auth is enabled, email auto-confirmation is disabled, anonymous users and phone login are disabled (verified through public Auth settings). Never turn on auto-confirmation as a delivery workaround.
 
