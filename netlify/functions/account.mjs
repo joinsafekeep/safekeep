@@ -16,6 +16,8 @@ const STRIPE_LINKS = {
  pairs:{monthly:'https://buy.stripe.com/28E8wR5Mf0d43a735d8Vi02',annual:'https://buy.stripe.com/14A00l8YrcZQ5ifeNV8Vi03'},
  family:{monthly:'https://buy.stripe.com/5kQ7sNgqT2lc8ur2198Vi04',annual:'https://buy.stripe.com/8x25kFfmP7FwaCz2198Vi05'}
 };
+// The same reply whether or not the address is already registered, and for the honeypot, so the dialog cannot tell.
+export const SIGNUP_REPLY = 'If this address can be registered, a verification email is on its way. Already registered? Sign in instead.';
 export function checkPassword(value) {
  if (typeof value !== 'string' || value.length < 12 || value.length > 128) throw new Error('Use a password between 12 and 128 characters.');
  return value;
@@ -78,11 +80,13 @@ export function makeHandler({ createClient = createServerClient, env = process.e
   const rpc = async(action,payload={})=>must(await client.rpc('account_action',{action,payload}));
   const clientIp = request.headers.get('x-nf-client-connection-ip') || request.headers.get('x-forwarded-for')?.split(',')[0].trim() || null;
   // Runs once a verified session exists: syncs the login email and records the terms accepted at sign-up.
+  // Metadata is user-editable, so it decides only whether the box was ticked at sign-up and when; the version
+  // recorded is the server's. A version bump between sign-up and verification records the current version.
   const finishSignup = async user => {
    await rpc('sync_email');
    const signup = user?.user_metadata?.safekeep_signup;
    if (signup?.terms_accepted_at && !signup.recorded) {
-    await rpc('accept_policies',{source:'signup',version:signup.terms_version || POLICY_VERSION,documents:['terms','privacy'],accepted_at:signup.terms_accepted_at,ip_hash:signup.ip_hash || null,user_agent:signup.user_agent || null});
+    await rpc('accept_policies',{source:'signup',version:POLICY_VERSION,documents:['terms','privacy'],accepted_at:signup.terms_accepted_at,ip_hash:signup.ip_hash || null,user_agent:signup.user_agent || null});
     await client.auth.updateUser({data:{safekeep_signup:{...signup,recorded:true}}});
    }
   };
@@ -100,7 +104,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     const email=emailValue(body.email); const password=checkPassword(body.password);
     if(body.adult_confirmed!==true) return reply({error:'Safekeep accounts are for adults. Confirm you are at least 18.'},400);
     if(body.terms_accepted!==true) return reply({error:'Accept the Terms of Service and Privacy Policy to continue.'},400);
-    if(typeof body.website==='string' && body.website) return reply({message:'If this address can be registered, a verification email is on its way.'}); // honeypot
+    if(typeof body.website==='string' && body.website) return reply({message:SIGNUP_REPLY}); // honeypot
     const intent=checkIntent(body.intent);
     if(env.TURNSTILE_SECRET_KEY && !(await turnstileOk(env.TURNSTILE_SECRET_KEY, body.turnstile_token, clientIp, fetcher))) return reply({error:'Please complete the security check and try again.'},400);
     const accepted=now().toISOString();
@@ -113,7 +117,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     if(result.data?.session) await client.auth.signOut({scope:'local'});
     if(result.error && result.error.status===429) return reply({error:'Please wait before trying again.'},429);
     if(result.error && !['user_already_exists','email_exists'].includes(result.error.code)) return reply({error:'Unable to send a verification email. Please try again later.'},400);
-    return reply({message:'If this address can be registered, a verification email is on its way. Already registered? Sign in instead.'});
+    return reply({message:SIGNUP_REPLY});
    }
    if(action==='login') {
     const {data,error}=await client.auth.signInWithPassword({email:emailValue(body.email),password:String(body.password || '')});
@@ -186,7 +190,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     // The plan picker on /account/, for people who arrived without the dialog or want to change their choice.
     const intent=checkIntent(body.payload);
     if(!intent?.plan || !intent?.billing) return reply({error:'Choose a plan and a billing period.'},400);
-    must(await client.auth.updateUser({data:{safekeep_intent:{...(meta.safekeep_intent||{}),...intent}}}));
+    must(await client.auth.updateUser({data:{safekeep_intent:{...(meta.safekeep_intent||{}),...intent,updated_at:now().toISOString()}}}));
     return reply({message:'Plan saved.'});
    }
    if(action==='checkout') {
@@ -197,6 +201,8 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     if(!PLANS[plan] || !['monthly','annual'].includes(billing)) return reply({error:'Choose a plan and a billing period.'},400);
     const profile=must(await client.from('user_profiles').select('user_id').eq('user_id',user.id).maybeSingle());
     if(!profile) return reply({error:'Finish your profile first.'},400);
+    const accepted=must(await client.from('policy_acceptances').select('document').eq('user_id',user.id).eq('version',POLICY_VERSION));
+    if(!['terms','privacy'].every(d=>accepted.some(a=>a.document===d))) return reply({error:'Accept the current Terms of Service and Privacy Policy first.'},400);
     const url=new URL(STRIPE_LINKS[plan][billing]);
     url.searchParams.set('client_reference_id',user.id);
     url.searchParams.set('prefilled_email',user.email);

@@ -18,7 +18,8 @@ The marketing dialog no longer ends at a Stripe Payment Link. After the plan ste
 - New /api/account actions: `verify_code` (email + code → session), `intent` (save a plan choice), `checkout` (returns the Stripe URL for the chosen plan with `client_reference_id` = user id and `prefilled_email`; an interim stand-in for /api/billing/checkout, same `{url}` response), `accept_policies` (re-acceptance after a version bump). `signup` now requires `terms_accepted: true` and accepts `first_name` and an `intent` object (`plan`, `billing`, `help_for`, `invitee_name`, `invitee_email`, `invitee_phone`, `lead_session_id`), validated and stored as user metadata (`safekeep_intent`, `safekeep_signup`). `state` returns `intent`, `signup`, `acceptances`, `policy_version` and `plans`.
 - Terms acceptance is recorded in `policy_acceptances` (database/signup-terms.sql) the first time a verified session exists, from the timestamp, version, hashed IP and user agent captured at sign-up. `POLICY_VERSION` in account.mjs is the version string; bump it when /terms/ or /privacy/ change and the account page re-prompts.
 - The adult attestation given at sign-up carries over to the profile form, so it is not asked twice.
-- Metadata is still untrusted for identity. The intent only decides which plan is offered and prefills the first invite; the acceptance record is about the user themself.
+- Metadata is still untrusted for identity. The intent only decides which plan is offered and prefills the first invite. For the acceptance record, metadata decides only whether the box was ticked at sign-up and when (bounded to the last 90 days by the RPC); the version written is the server's `POLICY_VERSION`, and `checkout` refuses until both documents are accepted at that version.
+- Turnstile covers both account-creation forms: the dialog (site key on the dialog element) and the standalone form on /account/ (site key on `#signup-form`; the /account/* CSP allows challenges.cloudflare.com). The same `TURNSTILE_SECRET_KEY` enforces both.
 
 Before deploying:
 
@@ -27,7 +28,9 @@ Before deploying:
 3. In the Stripe dashboard, change each Payment Link's "After payment" redirect to `https://joinsafekeep.com/account/?checkout=success`. Until then `/?signup=complete` forwards there.
 4. Optional, before public enrollment: Cloudflare Turnstile on the account-creation step. Set `TURNSTILE_SECRET_KEY` in the Functions environment and the site key in `data-turnstile-site-key` on the dialog in index.html and pricing.html (then rebuild scam-alerts). The contact step is untouched so the ads conversion is unaffected.
 5. Optional: `POLICY_IP_SALT` for the IP hash on acceptance records (defaults to the app origin).
-6. Still to build from the PRD: the 24h/72h "verified but never paid" reminders, the weekly cleanup of unconfirmed users older than 30 days, and the funnel events landing in the ads dashboard (they are sent as `signup_*` events to the Google tag; create conversions or reports for them).
+6. Funnel events: the dialog sends `signup_page_view`, `signup_form_open`, `signup_contact`, `signup_plan`, `signup_account_created` and `signup_verified` to the Google tag; create reports or conversions for them. /account/ loads no Google tag (its CSP allows only same-origin scripts), so `checkout_started`, `paid` and `first_seat` wait for the billing webhook, which can report them server-side.
+7. Review Supabase Auth rate limits (sign-ups, OTP verifications, resends per hour) in the dashboard before public enrollment; `verify_code` passes Supabase's 429 through as "Please wait before trying again."
+8. Still to build from the PRD: the 24h/72h "verified but never paid" reminders, the weekly cleanup of unconfirmed users older than 30 days, clearing the intent once billing has used it, and the subscription record that lets the page know a payment landed. Until then /account/ keeps "Continue to payment" available after a return from Stripe, and practice consent is hidden client-side before that return (server-side enforcement comes with the subscriptions table).
 
 ## Supabase state
 

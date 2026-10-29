@@ -60,7 +60,7 @@ test('session cookies retain security flags during refresh',async()=>{
  assert.equal(response.headers.get('cache-control'),'private, no-store');
 });
 // Sign-up handoff (PRD "Sign-up" section): terms acceptance, intent metadata, code verification, checkout handoff.
-import {checkIntent,POLICY_VERSION} from '../netlify/functions/account.mjs';
+import {checkIntent,POLICY_VERSION,SIGNUP_REPLY} from '../netlify/functions/account.mjs';
 test('intent keeps only known fields and rejects unknown plans',()=>{
  assert.deepEqual(checkIntent({plan:'family',billing:'annual',help_for:'other',invitee_name:'  Mom ',invitee_email:'Mom@Example.com',invitee_phone:'212-555-1234',lead_session_id:'abc-123',user_id:'victim',role:'admin'}),
   {plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom',invitee_email:'mom@example.com',invitee_phone:'212-555-1234',lead_session_id:'abc-123'});
@@ -97,13 +97,13 @@ test('signup enforces Turnstile when a secret is configured',async()=>{
  assert.equal((await handler(request({...base,turnstile_token:'good-token'}))).status,200);assert.equal(signedUp,true);assert.equal(verifyBody.get('secret'),'secret');
 });
 test('verifying the emailed code signs the person in and records the terms they accepted at sign-up',async()=>{
- const metadata={safekeep_signup:{terms_accepted_at:'2026-10-29T10:00:00.000Z',terms_version:'2026-10-29',ip_hash:'abc',user_agent:'UA'}};
+ const metadata={safekeep_signup:{terms_accepted_at:'2026-10-29T10:00:00.000Z',terms_version:'forged-2030',ip_hash:'abc',user_agent:'UA'}};
  let otpArgs,updated;
  const s=setup({verifyOtp:async args=>{otpArgs=args;return {data:{user:{id:'u',email_confirmed_at:'yes',user_metadata:metadata}},error:null};},updateUser:async args=>{updated=args;return {data:{},error:null};}});
  const r=await s.handler(request({action:'verify_code',email:'a@example.com',code:'123 456'}));
  assert.equal(r.status,200);assert.deepEqual(otpArgs,{email:'a@example.com',token:'123456',type:'signup'});
  assert.deepEqual(s.calls.map(c=>c.args.action),['sync_email','accept_policies']);
- assert.deepEqual(s.calls[1].args.payload,{source:'signup',version:'2026-10-29',documents:['terms','privacy'],accepted_at:'2026-10-29T10:00:00.000Z',ip_hash:'abc',user_agent:'UA'});
+ assert.deepEqual(s.calls[1].args.payload,{source:'signup',version:POLICY_VERSION,documents:['terms','privacy'],accepted_at:'2026-10-29T10:00:00.000Z',ip_hash:'abc',user_agent:'UA'});
  assert.equal(updated.data.safekeep_signup.recorded,true);
  const short=await s.handler(request({action:'verify_code',email:'a@example.com',code:'12'}));assert.equal(short.status,400);
 });
@@ -122,10 +122,14 @@ test('terms recorded once: a verified session whose acceptance is already record
 });
 test('checkout hands off to the Payment Link keyed to the account, and needs a profile first',async()=>{
  let profileExists=false,updated;
- const from=()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:profileExists?{user_id:'user-a'}:null,error:null})})})});
+ let acceptances=[];
+ const from=table=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:profileExists?{user_id:'user-a'}:null,error:null}),eq:async()=>({data:acceptances,error:null})})})});
  const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user:{id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_intent:{plan:'pairs',billing:'annual'}}}}}),updateUser:async args=>{updated=args;return {data:{},error:null};}},from})});
  assert.equal((await handler(request({action:'checkout'}))).status,400);
  profileExists=true;
+ const unaccepted=await handler(request({action:'checkout'}));assert.equal(unaccepted.status,400);assert.match((await unaccepted.json()).error,/Terms of Service/);
+ acceptances=[{document:'terms'}];assert.equal((await handler(request({action:'checkout'}))).status,400);
+ acceptances=[{document:'terms'},{document:'privacy'}];
  const r=await handler(request({action:'checkout'}));assert.equal(r.status,200);
  const url=new URL((await r.json()).url);
  assert.equal(url.origin,'https://buy.stripe.com');assert.equal(url.searchParams.get('client_reference_id'),'user-a');assert.equal(url.searchParams.get('prefilled_email'),'a@example.com');
@@ -136,4 +140,20 @@ test('profile carries the adult attestation given at sign-up so it is not asked 
  const s=setup({getUser:async()=>({data:{user:{id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_signup:{adult_confirmed_at:'2026-10-29T10:00:00.000Z'}}}}})});
  assert.equal((await s.handler(request({action:'profile',payload:{first_name:'Ian',timezone:'America/New_York'}}))).status,200);
  assert.equal(s.calls[0].args.payload.adult_confirmed,true);
+});
+
+test('signup replies identically for a new address, an existing one, and the honeypot',async()=>{
+ const base={action:'signup',email:'a@example.com',password:'long enough password',adult_confirmed:true,terms_accepted:true};
+ const fresh=setup({signUp:async()=>({data:{user:{id:'new'},session:null},error:null})});
+ const taken=setup({signUp:async()=>({data:{user:null,session:null},error:{code:'user_already_exists',status:422,message:'User already registered'}})});
+ let bot=false;const trap=setup({signUp:async()=>{bot=true;return {data:{},error:null};}});
+ const replies=await Promise.all([fresh.handler(request(base)),taken.handler(request(base)),trap.handler(request({...base,website:'http://spam'}))]);
+ for(const r of replies){assert.equal(r.status,200);assert.equal((await r.json()).message,SIGNUP_REPLY);}
+ assert.equal(bot,false);
+});
+test('the intent action stamps when the plan was chosen so the sign-in path can tell which choice is newer',async()=>{
+ let updated;const s=setup({updateUser:async args=>{updated=args;return {data:{},error:null};}});
+ assert.equal((await s.handler(request({action:'intent',payload:{plan:'family',billing:'monthly',role:'admin'}}))).status,200);
+ assert.equal(updated.data.safekeep_intent.plan,'family');assert.ok(updated.data.safekeep_intent.updated_at);assert.equal(updated.data.safekeep_intent.role,undefined);
+ assert.equal((await s.handler(request({action:'intent',payload:{plan:'family'}}))).status,400);
 });
