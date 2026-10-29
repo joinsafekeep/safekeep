@@ -30,7 +30,7 @@ function fakeAdmin(seed = {}) {
     const list = Array.isArray(pendingInsert) ? pendingInsert : [pendingInsert];
     for (const row of list) {
      if (table === 'webhook_events' && rows.some(r => r.provider_event_id === row.provider_event_id)) return { data: null, error: { code: '23505' } };
-     if (upsertOpts && rows.some(r => r.subscription_id === row.subscription_id && r.user_id === row.user_id)) continue;
+     if (upsertOpts) { const cols = (upsertOpts.onConflict || 'id').split(','); if (rows.some(r => cols.every(c => r[c] === row[c]))) continue; }
      rows.push({ id: `${table}-${rows.length + 1}`, created_at: NOW.toISOString(), ...row });
     }
     return { data: list.map(() => rows[rows.length - 1]), error: null };
@@ -141,4 +141,10 @@ test('the sender drains pending emails through SendGrid and records failures wit
  const result = await runSender({ env: { SUPABASE_SERVICE_ROLE_KEY: 's', SENDGRID_API_KEY: 'k', EMAIL_FROM: 'hello@joinsafekeep.com' }, makeClient: () => admin, fetcher, now: () => NOW });
  assert.deepEqual(result, { pending: 2, sent: 1, failed: 1 }); assert.deepEqual(sent, ['a@example.com', 'bad@example.com']);
  assert.equal(admin.tables.outbound_emails[0].sent_at, NOW.toISOString()); assert.match(admin.tables.outbound_emails[1].failure, /SendGrid 400/);
+});
+test('terms accepted on Stripe’s checkout page are recorded as a checkout acceptance',async()=>{
+ const admin=fakeAdmin({policy_acceptances:[]});
+ const handler=webhookHandler({env,makeClient:()=>admin,now:()=>NOW,fetcher:stripeApi({sub_1:stripeSub()})});
+ await handler(post(event('checkout.session.completed',{mode:'subscription',subscription:'sub_1',customer:'cus_1',client_reference_id:USER,consent:{terms_of_service:'accepted'},created:1761768000},'evt_terms')));
+ assert.deepEqual(admin.tables.policy_acceptances.map(r=>[r.document,r.source]).sort(),[['privacy','checkout'],['terms','checkout']]);
 });

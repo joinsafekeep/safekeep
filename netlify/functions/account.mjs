@@ -5,9 +5,8 @@ const defaults = {
  url: 'https://iybcbztvofqihvqhqfoo.supabase.co',
  key: 'sb_publishable_zYE3IWYDB4KSj9UZkbLVBg__SDs-7hr'
 };
-// Version string recorded with every Terms of Service / Privacy Policy acceptance. Bump it when the documents change;
-// the account page re-prompts anyone whose latest acceptance is older.
-export const POLICY_VERSION = '2026-10-29';
+import { POLICY_VERSION } from './lib/policy.mjs';
+export { POLICY_VERSION };
 // Plans and the Stripe Payment Links that stand in for /api/billing/checkout until the billing phase lands.
 // Seat counts are keyed by plan here; the billing phase keys them by Stripe price id.
 export const PLANS = { individual:{seats:1,monthly:'$5/month',annual:'$60/year'}, pairs:{seats:2,monthly:'$9/month',annual:'$96/year'}, family:{seats:4,monthly:'$16/month',annual:'$168/year'} };
@@ -62,14 +61,42 @@ async function turnstileOk(secret, token, ip, fetcher) {
 // landline. Enabled when TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_VERIFY_SERVICE_SID are set. The code is
 // checked here, never in the browser, and the database is told only through an HMAC proof under PHONE_VERIFY_SECRET
 // (the same value sits in safekeep_private.secrets), so a signed-in user cannot mark a number verified themselves.
+// Credentials: a restricted API key (TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET) is preferred; the account SID and
+// auth token still work as a fallback.
+export function twilioAuth(env) {
+ if (env.TWILIO_API_KEY_SID && env.TWILIO_API_KEY_SECRET) return 'Basic ' + Buffer.from(`${env.TWILIO_API_KEY_SID}:${env.TWILIO_API_KEY_SECRET}`).toString('base64');
+ if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) return 'Basic ' + Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+ return null;
+}
 function twilio(env) {
- if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_VERIFY_SERVICE_SID || !env.PHONE_VERIFY_SECRET) return null;
- const auth = 'Basic ' + Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+ const auth = twilioAuth(env);
+ if (!auth || !env.TWILIO_VERIFY_SERVICE_SID || !env.PHONE_VERIFY_SECRET) return null;
  const base = `https://verify.twilio.com/v2/Services/${env.TWILIO_VERIFY_SERVICE_SID}`;
  return { auth, start: `${base}/Verifications`, check: `${base}/VerificationCheck` };
 }
 export const verificationChannel = kind => kind === 'mobile' ? 'sms' : 'call';
 export const phoneProof = (secret, userId, contactId, method) => createHmac('sha256', secret).update(`${userId}:${contactId}:${method}`).digest('hex');
+// A Stripe Checkout Session for one subscription price, keyed to the account: client_reference_id and metadata carry
+// the user id, so the webhook can attach the plan without trusting anything the browser sends back. Returns null on
+// any Stripe error so the caller can fall back to the Payment Link.
+export async function createCheckoutSession({ env, fetcher, origin, user, price, customer, plan, billing }) {
+ const body = new URLSearchParams({
+  mode: 'subscription', 'line_items[0][price]': price, 'line_items[0][quantity]': '1',
+  client_reference_id: user.id, 'metadata[user_id]': user.id, 'metadata[plan]': plan, 'metadata[billing]': billing,
+  'subscription_data[metadata][user_id]': user.id,
+  success_url: `${origin}/account/?checkout=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${origin}/account/?checkout=cancelled`,
+  allow_promotion_codes: 'true'
+ });
+ if (customer) body.set('customer', customer); else body.set('customer_email', user.email);
+ if (env.STRIPE_AUTOMATIC_TAX === 'true') { body.set('automatic_tax[enabled]', 'true'); if (customer) body.set('customer_update[address]', 'auto'); }
+ // Requires a Terms of Service URL in Stripe's public business details; the webhook records the acceptance.
+ if (env.STRIPE_TERMS_AT_CHECKOUT === 'true') body.set('consent_collection[terms_of_service]', 'required');
+ try {
+  const response = await fetcher('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, 'Idempotency-Key': `checkout-${user.id}-${price}-${Math.floor(Date.now() / 600000)}` }, body });
+  const session = await response.json().catch(() => ({}));
+  return response.ok && session.url ? session.url : null;
+ } catch { return null; }
+}
 export function makeHandler({ createClient = createServerClient, env = process.env, fetcher = globalThis.fetch, now = () => new Date() } = {}) {
  return async request => {
   const headers = new Headers({'Content-Type':'application/json','Cache-Control':'private, no-store','Pragma':'no-cache','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});
@@ -267,11 +294,21 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     if(!profile) return reply({error:'Finish your profile first.'},400);
     const accepted=must(await client.from('policy_acceptances').select('document').eq('user_id',user.id).eq('version',POLICY_VERSION));
     if(!['terms','privacy'].every(d=>accepted.some(a=>a.document===d))) return reply({error:'Accept the current Terms of Service and Privacy Policy first.'},400);
-    const url=new URL(STRIPE_LINKS[plan][billing]);
-    url.searchParams.set('client_reference_id',user.id);
-    url.searchParams.set('prefilled_email',user.email);
+    let url=null;
+    if(env.STRIPE_SECRET_KEY) {
+     const price=must(await client.from('price_plans').select('price_id').eq('plan',plan).eq('billing',billing).eq('active',true).limit(1))?.[0]?.price_id;
+     // A returning sponsor keeps their Stripe customer (from their latest plan, written only by the webhook).
+     const previous=must(await client.from('subscriptions').select('stripe_customer_id').eq('sponsor_user_id',user.id).order('created_at',{ascending:false}).limit(1))?.[0]?.stripe_customer_id;
+     if(price) url=await createCheckoutSession({env,fetcher,origin:new URL(origin).origin,user,price,customer:previous,plan,billing});
+    }
+    if(!url) { // No Stripe key, no price row, or Stripe refused: the Payment Link still works and is keyed to the account.
+     const link=new URL(STRIPE_LINKS[plan][billing]);
+     link.searchParams.set('client_reference_id',user.id);
+     link.searchParams.set('prefilled_email',user.email);
+     url=link.toString();
+    }
     must(await client.auth.updateUser({data:{safekeep_intent:{...intent,plan,billing,checkout_started_at:now().toISOString()}}}));
-    return reply({url:url.toString()});
+    return reply({url});
    }
    if(action==='accept_policies') {
     // Re-acceptance after a version bump, or acceptance from a flow that has no sign-up metadata.

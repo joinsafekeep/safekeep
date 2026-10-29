@@ -217,3 +217,36 @@ test('the daily cleanup deletes expired deletion requests and stale unconfirmed 
  const result=await runCleanup({env:{SUPABASE_SERVICE_ROLE_KEY:'service'},now,makeClient});
  assert.deepEqual(deleted.sort(),['old-unconfirmed','requested-old']);assert.equal(result.deleted,2);assert.equal(result.requested,1);assert.equal(result.unconfirmed,1);assert.equal(DELETE_AFTER_DAYS,30);
 });
+// Phase 2: server-created Checkout with Payment Link fallback; Twilio API-key credentials.
+import {createCheckoutSession,twilioAuth} from '../netlify/functions/account.mjs';
+test('checkout creates a Stripe Checkout Session keyed to the account, reusing a returning sponsor’s customer',async()=>{
+ let sent;const fetcher=async(url,init)=>{sent={url,body:init.body,headers:init.headers};return {ok:true,json:async()=>({url:'https://checkout.stripe.com/c/pay/cs_test'})};};
+ const tables={price_plans:[{price_id:'price_pairs_annual'}],subscriptions:[],user_profiles:[{user_id:'user-a'}],policy_acceptances:[{document:'terms'},{document:'privacy'}]};
+ const from=table=>{if(table==='subscriptions'){const b={};let live=false;for(const m of ['select','eq','order'])b[m]=()=>b;b.in=()=>{live=true;return b;};b.limit=async()=>({data:live?[]:tables.subscriptions,error:null});return b;}const rows=tables[table];const b={};for(const m of ['select','eq','order'])b[m]=()=>b;b.limit=async()=>({data:rows,error:null});b.maybeSingle=async()=>({data:rows[0]||null,error:null});b.then=ok=>ok({data:rows,error:null});return b;};
+ const handler=makeHandler({env:{APP_ORIGIN:origin,STRIPE_SECRET_KEY:'rk_test'},fetcher,createClient:()=>({auth:{getUser:async()=>({data:{user:{id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_intent:{plan:'pairs',billing:'annual'}}}}}),updateUser:async()=>({data:{},error:null})},from})});
+ const r=await handler(request({action:'checkout'}));assert.equal(r.status,200);assert.equal((await r.json()).url,'https://checkout.stripe.com/c/pay/cs_test');
+ assert.equal(sent.url,'https://api.stripe.com/v1/checkout/sessions');assert.equal(sent.body.get('line_items[0][price]'),'price_pairs_annual');assert.equal(sent.body.get('client_reference_id'),'user-a');
+ assert.equal(sent.body.get('subscription_data[metadata][user_id]'),'user-a');assert.equal(sent.body.get('customer_email'),'a@example.com');assert.equal(sent.body.get('customer'),null);
+ assert.match(sent.body.get('success_url'),/\/account\/\?checkout=success&session_id=\{CHECKOUT_SESSION_ID\}$/);assert.match(sent.headers.Authorization,/^Bearer rk_test$/);
+ tables.subscriptions=[{stripe_customer_id:'cus_old'}];
+ await handler(request({action:'checkout'}));assert.equal(sent.body.get('customer'),'cus_old');assert.equal(sent.body.get('customer_email'),null);
+});
+test('checkout falls back to the Payment Link when Stripe refuses or no key is set',async()=>{
+ const url=await createCheckoutSession({env:{STRIPE_SECRET_KEY:'rk'},fetcher:async()=>({ok:false,json:async()=>({error:{type:'invalid_request_error'}})}),origin,user:{id:'u',email:'a@example.com'},price:'p',plan:'pairs',billing:'annual'});
+ assert.equal(url,null);
+ const thrown=await createCheckoutSession({env:{STRIPE_SECRET_KEY:'rk'},fetcher:async()=>{throw new Error('network');},origin,user:{id:'u',email:'a@example.com'},price:'p',plan:'pairs',billing:'annual'});
+ assert.equal(thrown,null);
+});
+test('checkout opts into Stripe Tax and terms collection only when configured',async()=>{
+ let body;const fetcher=async(_u,init)=>{body=init.body;return {ok:true,json:async()=>({url:'x'})};};
+ await createCheckoutSession({env:{STRIPE_SECRET_KEY:'rk'},fetcher,origin,user:{id:'u',email:'e@x.com'},price:'p',plan:'pairs',billing:'annual'});
+ assert.equal(body.get('automatic_tax[enabled]'),null);assert.equal(body.get('consent_collection[terms_of_service]'),null);
+ await createCheckoutSession({env:{STRIPE_SECRET_KEY:'rk',STRIPE_AUTOMATIC_TAX:'true',STRIPE_TERMS_AT_CHECKOUT:'true'},fetcher,origin,user:{id:'u',email:'e@x.com'},price:'p',plan:'pairs',billing:'annual'});
+ assert.equal(body.get('automatic_tax[enabled]'),'true');assert.equal(body.get('consent_collection[terms_of_service]'),'required');
+});
+test('Twilio credentials prefer the restricted API key over the auth token',()=>{
+ const dec=h=>Buffer.from(h.slice(6),'base64').toString();
+ assert.equal(dec(twilioAuth({TWILIO_API_KEY_SID:'SK1',TWILIO_API_KEY_SECRET:'sec',TWILIO_ACCOUNT_SID:'AC1',TWILIO_AUTH_TOKEN:'tok'})),'SK1:sec');
+ assert.equal(dec(twilioAuth({TWILIO_ACCOUNT_SID:'AC1',TWILIO_AUTH_TOKEN:'tok'})),'AC1:tok');
+ assert.equal(twilioAuth({}),null);
+});
