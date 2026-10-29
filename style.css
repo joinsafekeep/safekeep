@@ -72,5 +72,9 @@ header.wrap{gap:24px}header.wrap nav{gap:20px}nav a[aria-current=page]{text-deco
 .nav-signin:hover{background:#eaf1e4}
 @media(max-width:750px){header.wrap .nav-signin{min-height:44px;padding:8px 11px;font-size:.72rem}header.wrap{gap:10px}}
 @media(max-width:360px){header.wrap{gap:6px}header.wrap .nav-signin{padding:8px 6px;font-size:.67rem}header.wrap .nav-cta{padding:8px 9px}.large-text header.wrap .brand{font-size:27px}}
+/* Header Sign up matches the Sign in button's size. */
+header.wrap .nav-cta.button{min-height:46px;max-width:none;padding:10px 15px;gap:0;justify-content:center;font-size:.8rem;line-height:1.2}
+@media(max-width:750px){header.wrap .nav-cta.button{min-height:44px;padding:8px 11px;font-size:.72rem}}
+@media(max-width:360px){header.wrap .nav-cta.button{padding:8px 6px;font-size:.67rem}}
 /* Sign-up dialog: account creation and verification stages. */
 .signup-dialog .signup-check{display:flex;align-items:flex-start;gap:12px;font-size:17px;font-weight:400;line-height:1.45;margin:0 0 14px}.signup-dialog .signup-check input{margin-top:2px}.signup-dialog .signup-check a{color:#254d3e;text-underline-offset:3px}.signup-dialog .signup-turnstile:empty{display:none}.signup-dialog .signup-turnstile{margin:6px 0 14px}.signup-dialog #verify-code{font-size:26px;letter-spacing:6px;font-variant-numeric:tabular-nums;text-align:center}.signup-dialog #verify-form .signup-hint button{min-height:0;padding:0;font-size:inherit}.signup-dialog #account-form .signup-hint a,.signup-dialog #verify-form .signup-hint a{color:#254d3e}
