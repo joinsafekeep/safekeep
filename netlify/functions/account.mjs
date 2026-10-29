@@ -187,20 +187,27 @@ export function makeHandler({ createClient = createServerClient, env = process.e
    }
    if(action==='state') {
     await finishSignup(user);
-    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion]=await Promise.all([
+    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion,subscriptions,members,sponsorship]=await Promise.all([
      client.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_preferences').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_contacts').select('*').eq('user_id',user.id).order('created_at'),
      client.from('consent_events').select('contact_id,channel,action,sequence').eq('user_id',user.id).order('sequence',{ascending:false}),
      client.from('policy_acceptances').select('document,version,source,accepted_at').eq('user_id',user.id).order('accepted_at',{ascending:false}),
      client.from('report_recipients').select('id,name,email,added_at').eq('participant_user_id',user.id).is('removed_at',null).order('added_at'),
-     client.from('account_deletions').select('requested_at,cancelled_at').eq('user_id',user.id).maybeSingle()
+     client.from('account_deletions').select('requested_at,cancelled_at').eq('user_id',user.id).maybeSingle(),
+     client.from('subscriptions').select('id,plan,billing,seats,status,current_period_end,cancel_at,canceled_at,ended_at,past_due_since,refunded_at,created_at').eq('sponsor_user_id',user.id).order('created_at',{ascending:false}).limit(1),
+     client.from('subscription_members').select('subscription_id,user_id,role,status,joined_at').eq('role','participant').in('status',['active','paused']),
+     client.rpc('my_sponsorship')
     ]);
     const signup=meta.safekeep_signup || {};
     const deletion=must(pendingDeletion);
     return reply({signed_in:true,email:user.email,profile:must(profile),preferences:must(preferences),contacts:must(contacts),consents:must(consents),acceptances:must(acceptances),
      report_recipients:must(recipients),deletion:deletion && !deletion.cancelled_at?{requested_at:deletion.requested_at,delete_after:new Date(new Date(deletion.requested_at).getTime()+30*86400000).toISOString()}:null,
-     phone_verification:!!twilio(env),
+     phone_verification:!!twilio(env),billing_portal:!!env.STRIPE_SECRET_KEY,
+     // The sponsor's latest plan with the seats in use (participants on it, by seat ledger), and the plan this person
+     // is a participant on, if someone else pays.
+     subscription:(()=>{const sub=must(subscriptions)?.[0];if(!sub)return null;const seatRows=must(members)||[];return {...sub,seats_used:seatRows.filter(m=>m.subscription_id===sub.id).length};})(),
+     membership:(must(sponsorship)||[])[0]||null,
      intent:meta.safekeep_intent || null,signup:{first_name:signup.first_name || null,adult_confirmed:!!signup.adult_confirmed_at},policy_version:POLICY_VERSION,plans:PLANS});
    }
    if(action==='phone_verify_start' || action==='phone_verify_check') {
@@ -254,6 +261,8 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     const intent=meta.safekeep_intent || {};
     const plan=body.payload?.plan || intent.plan, billing=body.payload?.billing || intent.billing;
     if(!PLANS[plan] || !['monthly','annual'].includes(billing)) return reply({error:'Choose a plan and a billing period.'},400);
+    const live=must(await client.from('subscriptions').select('id').eq('sponsor_user_id',user.id).in('status',['trialing','active','past_due']).limit(1));
+    if(live?.length) return reply({error:'You already have a plan. Use Manage subscription to change it.'},400);
     const profile=must(await client.from('user_profiles').select('user_id').eq('user_id',user.id).maybeSingle());
     if(!profile) return reply({error:'Finish your profile first.'},400);
     const accepted=must(await client.from('policy_acceptances').select('document').eq('user_id',user.id).eq('version',POLICY_VERSION));
@@ -269,7 +278,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     await rpc('accept_policies',{source:body.payload?.source==='reprompt'?'reprompt':'signup',version:POLICY_VERSION,documents:['terms','privacy'],ip_hash:hashIp(clientIp, env.POLICY_IP_SALT || origin),user_agent:text(request.headers.get('user-agent'),512)});
     return reply({message:'Saved.'});
    }
-   if(['profile','add_phone','consent','preferences','remove_phone','add_report_recipient','remove_report_recipient','cancel_deletion'].includes(action)) {
+   if(['profile','add_phone','consent','preferences','remove_phone','add_report_recipient','remove_report_recipient','cancel_deletion','leave_subscription'].includes(action)) {
     const payload=body.payload || {};
     if(typeof payload!=='object' || Array.isArray(payload)) return reply({error:'Invalid form.'},400);
     // The adult attestation given at account creation carries over, so the profile form does not ask twice.
@@ -280,7 +289,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
   } catch(error) {
    // Never log credentials, tokens, personal data or the request body.
    if(error?.code==='23505') return reply({error:'That contact is already saved.'},409);
-   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents','Choose a phone contact','Choose a channel','Choose grant or revoke','Text practice needs a cell','Verify this number first','Keep your account first','Give consent for a verified contact','Choose a resume date','Enter their name','Up to five people','That person already','No deletion is pending','Phone verification is not configured','Choose a verification method'];
+   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents','Choose a phone contact','Choose a channel','Choose grant or revoke','Text practice needs a cell','Verify this number first','Keep your account first','Give consent for a verified contact','Choose a resume date','Enter their name','Up to five people','That person already','No deletion is pending','Phone verification is not configured','Choose a verification method','You are not on someone','You already have a plan'];
    const message=String(error?.message||'');
    return reply({error:safeMessages.some(prefix=>message.startsWith(prefix))?message:'Unable to complete this request. Please try again.'},400);
   }
