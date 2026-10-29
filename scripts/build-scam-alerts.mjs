@@ -29,6 +29,8 @@ const SHARE_IMAGE_ALT = 'An older adult using her smartphone at home';
 const STATIC_PAGES = [
   { path: '/', file: 'index.html' },
   { path: '/pricing', file: 'pricing.html' },
+  { path: '/terms/', file: 'terms/index.html' },
+  { path: '/privacy/', file: 'privacy/index.html' },
 ];
 
 // ---------------------------------------------------------------- utilities
