@@ -188,4 +188,15 @@ $('plan-form').addEventListener('submit',event=>{event.preventDefault();if(!even
 $('portal-form').addEventListener('submit',async event=>{event.preventDefault();const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{message('Opening your subscription in Stripe…');const r=await billingApi('portal');location.href=r.url;}catch(error){message(error.message,true);buttons.forEach(b=>b.disabled=false);}});
 $('leave-form').addEventListener('submit',event=>{event.preventDefault();if(!confirm('Leave this plan? Your practice stops right away and the person paying is told.'))return;run(null,async()=>{await api({action:'leave_subscription'});return {message:'You’ve left the plan. Practice has stopped, and your account is still yours.'};});});
 $('logout').addEventListener('click',()=>run(null,()=>api({action:'logout'})));
-refresh().catch(error=>message(error.message,true));
+// Back from Stripe: the webhook usually lands within seconds. Poll the account state for up to 40 seconds until the
+// plan shows up, so the page can say "your plan is active" instead of asking the person to reload.
+async function confirmCheckout(){
+ for(let i=0;i<20;i++){
+  if(state?.subscription&&LIVE.includes(state.subscription.status)){message('Thank you. Your plan is active.');return;}
+  message('Confirming your payment with Stripe…');
+  await new Promise(r=>setTimeout(r,2000));
+  try{await refresh();}catch{}
+ }
+ if(!(state?.subscription&&LIVE.includes(state.subscription.status)))message('Stripe hasn’t confirmed the payment yet. It can take a few minutes; this page will show your plan once it does. If you didn’t finish paying, the button below is still there.');
+}
+refresh().then(()=>{if(checkoutReturn&&state?.signed_in)return confirmCheckout();}).catch(error=>message(error.message,true));

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { POLICY_VERSION } from './lib/policy.mjs';
 
 // POST /api/billing/webhook: Stripe is the source of truth for subscriptions. Every event is verified against the
 // signing secret, recorded once in webhook_events (idempotent on the Stripe event id), then applied with the service
@@ -79,6 +80,10 @@ export async function handleEvent(event, { admin, env, fetcher = globalThis.fetc
    if (!ref || !UUID.test(ref)) return { skipped: 'no account reference (pre-account Payment Link)' };
    const { data } = await admin.auth.admin.getUserById(ref);
    if (!data?.user) return { skipped: 'client_reference_id is not an account' };
+   // Terms accepted on Stripe's checkout page (when consent collection is on) are recorded like any other acceptance.
+   if (obj.consent?.terms_of_service === 'accepted') {
+    for (const document of ['terms', 'privacy']) must(await admin.from('policy_acceptances').upsert({ user_id: ref, document, version: POLICY_VERSION, source: 'checkout', accepted_at: ts(obj.created) || nowIso }, { onConflict: 'user_id,document,version,source', ignoreDuplicates: true }));
+   }
    return apply(await stripeGet(`/v1/subscriptions/${idOf(obj.subscription)}`), ref);
   }
   case 'customer.subscription.created':

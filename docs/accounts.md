@@ -69,9 +69,18 @@ Before deploying:
 3. `SENDGRID_API_KEY` and `EMAIL_FROM` for the sender function, scoped to functions. `SUPABASE_SERVICE_ROLE_KEY` is now used by three scheduled/webhook functions and still by no request-path function.
 4. Existing subscribers who paid through a Payment Link before accounts: their events carry a session id, not a user id, so they are skipped; attach them by inserting a `subscriptions` row and sponsor seat by hand (the admin tool is a later phase).
 
+## Server-created checkout (added October 29, 2026)
+
+The `checkout` action now creates a Stripe Checkout Session when `STRIPE_SECRET_KEY` is set: the price comes from `price_plans` (readable by signed-in users through database/billing-checkout.sql), `client_reference_id` and `subscription_data.metadata.user_id` carry the account, a returning sponsor reuses the Stripe customer from their latest plan (a row only the webhook writes), and success returns to `/account/?checkout=success&session_id=…`, where the page polls for up to 40 seconds until the webhook has created the plan. If there is no key, no price row, or Stripe refuses, it falls back to the Payment Link, still keyed to the account. Stripe creates the customer during checkout, so no request-path code ever decides which Stripe customer an account maps to.
+
+- The restricted key needs **Checkout Sessions: Write** in addition to Subscriptions: Read and Customer Portal: Write.
+- `STRIPE_AUTOMATIC_TAX=true` turns on Stripe Tax for new sessions (Stripe Tax must be set up first). `STRIPE_TERMS_AT_CHECKOUT=true` requires the Terms checkbox on Stripe's page (needs a Terms URL in Stripe's public business details); the webhook records it as a `checkout` acceptance.
+- Twilio: `TWILIO_API_KEY_SID` + `TWILIO_API_KEY_SECRET` (a restricted key) are preferred over `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`.
+- Admin attach for pre-account Payment Link customers is not built: the six live prices had no active subscriptions when this shipped, so there is no one to attach.
+
 ## Supabase state
 
-Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, settings.sql, then billing-cancellation.sql once when provisioning a separate environment.
+Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, settings.sql, billing-cancellation.sql, then billing-checkout.sql once when provisioning a separate environment.
 
 Email auth is enabled, email auto-confirmation is disabled, anonymous users and phone login are disabled (verified through public Auth settings). Never turn on auto-confirmation as a delivery workaround.
 
