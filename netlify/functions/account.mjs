@@ -44,6 +44,7 @@ export function checkIntent(raw) {
  if (typeof raw.invitee_email === 'string' && raw.invitee_email.trim()) { try { intent.invitee_email = emailValue(raw.invitee_email); } catch { /* a bad prefill is dropped, not fatal */ } }
  const phone = text(raw.invitee_phone, 32); if (phone) intent.invitee_phone = phone;
  if (typeof raw.lead_session_id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(raw.lead_session_id)) intent.lead_session_id = raw.lead_session_id;
+ if (typeof raw.invite_token === 'string' && /^[0-9a-f]{64}$/.test(raw.invite_token)) intent.invite_token = raw.invite_token;
  return Object.keys(intent).length ? intent : null;
 }
 const hashIp = (ip, salt) => ip ? createHash('sha256').update(`${salt}|${ip}`).digest('hex') : null;
@@ -125,7 +126,8 @@ export function makeHandler({ createClient = createServerClient, env = process.e
    await rpc('sync_email');
    const signup = user?.user_metadata?.safekeep_signup;
    if (signup?.terms_accepted_at && !signup.recorded) {
-    await rpc('accept_policies',{source:'signup',version:POLICY_VERSION,documents:['terms','privacy'],accepted_at:signup.terms_accepted_at,ip_hash:signup.ip_hash || null,user_agent:signup.user_agent || null});
+    const source=user?.user_metadata?.safekeep_intent?.invite_token?'invite_accept':'signup';
+    await rpc('accept_policies',{source,version:POLICY_VERSION,documents:['terms','privacy'],accepted_at:signup.terms_accepted_at,ip_hash:signup.ip_hash || null,user_agent:signup.user_agent || null});
     await client.auth.updateUser({data:{safekeep_signup:{...signup,recorded:true}}});
    }
   };
@@ -214,7 +216,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
    }
    if(action==='state') {
     await finishSignup(user);
-    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion,subscriptions,members,sponsorship]=await Promise.all([
+    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion,subscriptions,members,sponsorship,seats,practising]=await Promise.all([
      client.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_preferences').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_contacts').select('*').eq('user_id',user.id).order('created_at'),
@@ -224,7 +226,9 @@ export function makeHandler({ createClient = createServerClient, env = process.e
      client.from('account_deletions').select('requested_at,cancelled_at').eq('user_id',user.id).maybeSingle(),
      client.from('subscriptions').select('id,plan,billing,seats,status,current_period_end,cancel_at,canceled_at,ended_at,past_due_since,refunded_at,created_at').eq('sponsor_user_id',user.id).order('created_at',{ascending:false}).limit(1),
      client.from('subscription_members').select('subscription_id,user_id,role,status,joined_at').eq('role','participant').in('status',['active','paused']),
-     client.rpc('my_sponsorship')
+     client.rpc('my_sponsorship'),
+     client.rpc('sponsor_seats'),
+     client.rpc('is_active_participant',{who:user.id})
     ]);
     const signup=meta.safekeep_signup || {};
     const deletion=must(pendingDeletion);
@@ -235,6 +239,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
      // is a participant on, if someone else pays.
      subscription:(()=>{const sub=must(subscriptions)?.[0];if(!sub)return null;const seatRows=must(members)||[];return {...sub,seats_used:seatRows.filter(m=>m.subscription_id===sub.id).length};})(),
      membership:(must(sponsorship)||[])[0]||null,
+     seats:must(seats)||[],practising:!!must(practising),
      intent:meta.safekeep_intent || null,signup:{first_name:signup.first_name || null,adult_confirmed:!!signup.adult_confirmed_at},policy_version:POLICY_VERSION,plans:PLANS});
    }
    if(action==='phone_verify_start' || action==='phone_verify_check') {
@@ -310,6 +315,16 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     must(await client.auth.updateUser({data:{safekeep_intent:{...intent,plan,billing,checkout_started_at:now().toISOString()}}}));
     return reply({url});
    }
+   if(['invite','resend_invite','revoke_invite','join_own_plan','remove_participant','accept_invitation'].includes(action)) {
+    const map={invite:'invite',resend_invite:'resend',revoke_invite:'revoke',join_own_plan:'join_own_plan',remove_participant:'remove_participant',accept_invitation:'accept'};
+    const payload=body.payload && typeof body.payload==='object' && !Array.isArray(body.payload)?body.payload:{};
+    const result=await client.rpc('invitation_action',{action:map[action],payload});
+    if(result.error) throw result.error;
+    // Once accepted, the token has done its job; drop it from the account's metadata.
+    if(action==='accept_invitation' && meta.safekeep_intent?.invite_token) { const {invite_token, ...rest}=meta.safekeep_intent; await client.auth.updateUser({data:{safekeep_intent:rest}}); }
+    const messages={invite:'Invitation sent. We’ll email them now.',resend_invite:'A fresh invitation is on its way.',revoke_invite:'Invitation cancelled.',join_own_plan:'You’re on your plan now. Choose how you’d like to practise below.',remove_participant:'They’ve been taken off your plan and told by email.',accept_invitation:'Welcome to Safekeep. Choose how you’d like to practise below.'};
+    return reply({message:messages[action]});
+   }
    if(action==='accept_policies') {
     // Re-acceptance after a version bump, or acceptance from a flow that has no sign-up metadata.
     await rpc('accept_policies',{source:body.payload?.source==='reprompt'?'reprompt':'signup',version:POLICY_VERSION,documents:['terms','privacy'],ip_hash:hashIp(clientIp, env.POLICY_IP_SALT || origin),user_agent:text(request.headers.get('user-agent'),512)});
@@ -326,7 +341,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
   } catch(error) {
    // Never log credentials, tokens, personal data or the request body.
    if(error?.code==='23505') return reply({error:'That contact is already saved.'},409);
-   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents','Choose a phone contact','Choose a channel','Choose grant or revoke','Text practice needs a cell','Verify this number first','Keep your account first','Give consent for a verified contact','Choose a resume date','Enter their name','Up to five people','That person already','No deletion is pending','Phone verification is not configured','Choose a verification method','You are not on someone','You already have a plan'];
+   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents','Choose a phone contact','Choose a channel','Choose grant or revoke','Text practice needs a cell','Verify this number first','Keep your account first','Give consent for a verified contact','Choose a resume date','Enter their name','Up to five people','That person already','No deletion is pending','Phone verification is not configured','Choose a verification method','You are not on someone','You already have a plan','Start a plan first','Every seat on your plan','Enter their email address','Enter their first name','To practise yourself','Keep the note under','That person already has','Invitation not found','That invitation is closed','You are already practising','Participant not found','This invitation','Sign in with the email address','This plan is no longer active'];
    const message=String(error?.message||'');
    return reply({error:safeMessages.some(prefix=>message.startsWith(prefix))?message:'Unable to complete this request. Please try again.'},400);
   }

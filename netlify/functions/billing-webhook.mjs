@@ -47,7 +47,7 @@ export async function handleEvent(event, { admin, env, fetcher = globalThis.fetc
  const findBySubscription = async id => must(await admin.from('subscriptions').select('*').eq('stripe_subscription_id', id).maybeSingle());
  const sponsorEmail = async userId => { const { data } = await admin.auth.admin.getUserById(userId); return data?.user?.email || null; };
  // Writes the subscription's current state. Creates the row only when the sponsor is known.
- const apply = async (sub, sponsorUserId) => {
+ const apply = async (sub, sponsorUserId, practising = false) => {
   const fields = subscriptionFields(sub, nowIso);
   const plan = await planFor(fields.price_id);
   if (plan) Object.assign(fields, { plan: plan.plan, billing: plan.billing, seats: plan.seats });
@@ -64,7 +64,13 @@ export async function handleEvent(event, { admin, env, fetcher = globalThis.fetc
    row = must(await admin.from('subscriptions').update(fields).eq('id', row.id).select().single());
   } else {
    row = must(await admin.from('subscriptions').insert({ ...fields, sponsor_user_id: sponsorUserId }).select().single());
-   must(await admin.from('subscription_members').upsert({ subscription_id: row.id, user_id: sponsorUserId, role: 'sponsor', status: 'active' }, { onConflict: 'subscription_id,user_id', ignoreDuplicates: true }));
+   must(await admin.from('subscription_members').upsert({ subscription_id: row.id, user_id: sponsorUserId, role: 'sponsor', status: 'active' }, { onConflict: 'subscription_id,user_id,role', ignoreDuplicates: true }));
+   // A sponsor who said the plan is for themself takes a participant seat too. If they already practise on someone
+   // else's plan, the one-plan rule wins and they keep that seat; they can switch from their account.
+   if (practising) {
+    const r = await admin.from('subscription_members').upsert({ subscription_id: row.id, user_id: sponsorUserId, role: 'participant', status: 'active' }, { onConflict: 'subscription_id,user_id,role', ignoreDuplicates: true });
+    if (r.error && r.error.code !== '23505') throw r.error;
+   }
   }
   if (ENDED.includes(fields.status) && !alreadyEnded) {
    must(await admin.rpc('end_subscription', { sid: row.id, ended: fields.ended_at || fields.canceled_at || nowIso }));
@@ -84,7 +90,7 @@ export async function handleEvent(event, { admin, env, fetcher = globalThis.fetc
    if (obj.consent?.terms_of_service === 'accepted') {
     for (const document of ['terms', 'privacy']) must(await admin.from('policy_acceptances').upsert({ user_id: ref, document, version: POLICY_VERSION, source: 'checkout', accepted_at: ts(obj.created) || nowIso }, { onConflict: 'user_id,document,version,source', ignoreDuplicates: true }));
    }
-   return apply(await stripeGet(`/v1/subscriptions/${idOf(obj.subscription)}`), ref);
+   return apply(await stripeGet(`/v1/subscriptions/${idOf(obj.subscription)}`), ref, data.user.user_metadata?.safekeep_intent?.help_for !== 'other');
   }
   case 'customer.subscription.created':
   case 'customer.subscription.updated':
