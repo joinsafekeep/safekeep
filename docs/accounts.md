@@ -50,9 +50,28 @@ Before deploying:
 3. Set `SUPABASE_SERVICE_ROLE_KEY` for the scheduled cleanup function only (Netlify lets a variable be scoped to functions; keep it out of any request-path function and out of client code). The job skips with a note until it is set.
 4. The account page offers channel consent only after a return from Stripe or once any consent exists (page-level guard, as in the sign-up handoff); the server-side gate arrives with the subscriptions table.
 
+## Cancellation and the subscription record (added October 29, 2026)
+
+Built to the "Cancellation" section of the MVP PRD, with the slice of the billing layer it needs. Migration: database/billing-cancellation.sql (tests: database/billing-cancellation-tests.sql; verified locally with the earlier suites).
+
+- `subscriptions` is fed only by Stripe webhooks (`netlify/functions/billing-webhook.mjs`, POST /api/billing/webhook): signature verified against `STRIPE_WEBHOOK_SECRET`, each event recorded once in `webhook_events`, applied with the service role. `checkout.session.completed` creates the row and the sponsor's seat from `client_reference_id` (the account's user id, which the sign-up handoff already puts on Payment Link checkouts; a pre-account session id is skipped). `customer.subscription.created/updated` keep status, price, period end and `cancel_at` current; `deleted` (or a status of canceled/unpaid/incomplete_expired) calls `end_subscription`. `invoice.payment_failed` marks past due and queues one email on the first failure; `invoice.paid` clears it; `charge.refunded` stamps `refunded_at`.
+- `end_subscription(sid)` (service role only): every seat on `subscription_members` goes to `ended`, queued practices are cancelled, and sponsor and participants each get one plain email through `outbound_emails`. Annual plans are untouched until Stripe actually ends them, so access runs through the paid period.
+- `is_active_participant(uid)`: the entitlement check the scheduler and the account page share (active seat on an active/trialing plan, or past due for under seven days). A user may ask only about themself.
+- `leave_subscription` (account_action): a participant leaves without the sponsor cancelling; the seat frees, their queue stops, the sponsor gets an email. `my_sponsorship()` is what a participant may see of the plan: the sponsor's first name and the plan's state.
+- POST /api/billing/portal (`netlify/functions/billing.mjs`): a Stripe Billing Portal session for the signed-in sponsor's customer; `/account/` shows "Manage subscription" on the plan card. The bare portal login link in the footer stays for pre-account customers.
+- `outbound_emails` is drained by `netlify/functions/scheduled-email.mjs` every ten minutes through SendGrid (`SENDGRID_API_KEY`, `EMAIL_FROM`); until configured, emails wait in the table. Rows are marked sent or failed, never retried silently.
+- `price_plans` maps Stripe price ids to plan, billing and seats, so a price change is a row, not a deploy. Unknown prices get one seat.
+
+Before deploying:
+
+1. Apply database/billing-cancellation.sql, then insert the six live prices into `price_plans` (price id, plan, billing, seats 1/2/4).
+2. In Stripe, add a webhook endpoint for `https://joinsafekeep.com/api/billing/webhook` with the events listed above and set `STRIPE_WEBHOOK_SECRET`; set `STRIPE_SECRET_KEY` (used by the webhook to read a subscription after checkout and by the portal function). Configure the Billing Portal in Stripe (allow cancel and card update; plan changes can stay off until the invitations phase handles seat downgrades).
+3. `SENDGRID_API_KEY` and `EMAIL_FROM` for the sender function, scoped to functions. `SUPABASE_SERVICE_ROLE_KEY` is now used by three scheduled/webhook functions and still by no request-path function.
+4. Existing subscribers who paid through a Payment Link before accounts: their events carry a session id, not a user id, so they are skipped; attach them by inserting a `subscriptions` row and sponsor seat by hand (the admin tool is a later phase).
+
 ## Supabase state
 
-Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, then settings.sql once when provisioning a separate environment.
+Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, settings.sql, then billing-cancellation.sql once when provisioning a separate environment.
 
 Email auth is enabled, email auto-confirmation is disabled, anonymous users and phone login are disabled (verified through public Auth settings). Never turn on auto-confirmation as a delivery workaround.
 
@@ -65,7 +84,7 @@ Email auth is enabled, email auto-confirmation is disabled, anonymous users and 
 5. Set the Supabase password policy to at least 12 characters (the application also enforces 12–128), enable leaked-password protection where available, review Auth rate limits, and add bot protection before public enrollment. Configure equivalent edge/IP controls on the account function; server-to-server Auth calls can share network rate limits. Avoid request-body logging and analytics on /account/.
 6. Run a real mailbox acceptance test on the deployment: signup → email verification → profile → add phone → consent → preferences → sign out → sign in → reset email → set password → old password rejected → new password accepted. Check code replay and expiry, resend behavior, two-account isolation, mobile form layout and error messaging. Do not mark these passed from mocked endpoint tests.
 
-MFA enrollment, self-service email editing, caregivers, live messaging and billing are not built. Do not advertise these as implemented. Production personal-data collection should wait for retention/deletion handling and the launch checks above.
+MFA enrollment, self-service email editing, invitations, live messaging and server-created checkout are not built. Do not advertise these as implemented. Production personal-data collection should wait for retention/deletion handling and the launch checks above.
 
 ## Verification performed
 

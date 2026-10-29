@@ -18,6 +18,9 @@ async function api(body) {
 const fields=form=>Object.fromEntries(new FormData(form));
 function fill(form,data){for(const [key,value] of Object.entries(data||{})){const input=form.elements.namedItem(key);if(input){if(input.type==='checkbox')input.checked=Boolean(value);else input.value=value??'';}}}
 const PLAN_NAMES={individual:'Individual',pairs:'Pairs',family:'Family'};
+const LIVE=['trialing','active','past_due'];
+const longDate=iso=>iso?new Date(iso).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'}):'';
+async function billingApi(path,body){const response=await fetch('/api/billing/'+path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{}),cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Please try again.');return data;}
 // The plan chosen in the marketing dialog is kept in session storage for the sign-in path (the dialog cannot tell
 // whether an address is already registered, so it sends those people here).
 function storedIntent(){try{const raw=sessionStorage.getItem('safekeep-intent');return raw?JSON.parse(raw):null;}catch{return null;}}
@@ -49,16 +52,32 @@ async function refresh(){
  // Step 2: checkout, shown once the profile exists and the terms are current. One line naming the plan, or the
  // picker when there is none. There is no subscription record yet, so the button stays until billing can confirm.
  const ready=hasProfile&&termsCurrent;
- const showCheckout=ready&&!!intent.plan&&!!intent.billing;
+ // The plan, once Stripe has told us about it. Live plans replace the checkout card; ended plans show what
+ // stopped and when, with the picker underneath to start again.
+ const sub=state.subscription,live=!!sub&&LIVE.includes(sub.status);
+ $('subscription-section').hidden=!sub;
+ if(sub){
+  const name=sub.plan?PLAN_NAMES[sub.plan]+' plan':'Your plan',seats=sub.seats_used!=null?` ${sub.seats_used} of ${sub.seats} ${sub.seats===1?'seat':'seats'} in use.`:'';
+  if(!live)$('subscription-summary').textContent=`${name} ended on ${longDate(sub.ended_at||sub.canceled_at||sub.updated_at)}. Practice has stopped for everyone who was on it.`;
+  else if(sub.status==='past_due')$('subscription-summary').textContent=`${name}: the latest payment didn’t go through. Stripe will try again over the next few days; practice pauses after seven days past due. Update your card with Manage subscription.`;
+  else if(sub.cancel_at)$('subscription-summary').textContent=`${name}, billed ${sub.billing==='annual'?'annually':'monthly'}, is set to end on ${longDate(sub.cancel_at)}. Practice continues until then.`;
+  else $('subscription-summary').textContent=`${name}, billed ${sub.billing==='annual'?'annually':'monthly'}.${sub.current_period_end?` Next payment on ${longDate(sub.current_period_end)}.`:''}`;
+  $('subscription-detail').textContent=(live?seats:'')+(sub.refunded_at?` Refunded on ${longDate(sub.refunded_at)}.`:'')+(!live?' Choose a plan below to start again.':'');
+  $('portal-form').hidden=!state.billing_portal;
+ }
+ const membership=state.membership;
+ $('membership-section').hidden=!membership;
+ if(membership){const ends=membership.cancel_at?` It is set to end on ${longDate(membership.cancel_at)}.`:LIVE.includes(membership.status)?'':` That plan has ended, so practice has stopped.`;$('membership-summary').textContent=`You’re on ${membership.sponsor_name}’s ${membership.plan?PLAN_NAMES[membership.plan]+' plan':'plan'}.${ends}`;}
+ const showCheckout=ready&&!live&&!!intent.plan&&!!intent.billing;
  $('checkout-section').hidden=!showCheckout;
  if(showCheckout){$('checkout-summary').textContent=planLine(intent);$('checkout-button').textContent=checkoutReturn||intent.checkout_started_at?'Continue to payment (if you didn’t finish)':'Continue to payment';}
- $('plan-section').hidden=!(ready&&!showCheckout);
+ $('plan-section').hidden=!(ready&&!live&&!showCheckout);
  for(const input of $('plan-form').querySelectorAll('input[type=radio]'))if(intent[input.name]===input.value)input.checked=true;
  // Back from Stripe: thank them, say what's next, and leave the payment button in place.
  $('paid-section').hidden=!(ready&&checkoutReturn);
  if(ready&&checkoutReturn){
   $('paid-title').textContent='Thank you for subscribing';
-  $('paid-copy').textContent='Stripe will email your receipt. '+planLine(intent)+' Your subscription will show here once payment confirmation is connected; if the payment didn’t go through, the button below is still there. To cancel or update your card later, use Manage subscription at the bottom of any Safekeep page.';
+  $('paid-copy').textContent='Stripe will email your receipt. '+(live?'Your plan is active.':planLine(intent)+' It can take a minute for Stripe to confirm the payment; reload this page shortly. If the payment didn’t go through, the button below is still there.');
   const forOther=intent.help_for==='other';
   $('invite-next').hidden=!forOther;$('self-next').hidden=forOther;
   if(forOther){$('invitee-name').textContent=intent.invitee_name||'them';$('invitee-details').replaceChildren(...[['Name',intent.invitee_name],['Email',intent.invitee_email],['Phone',intent.invitee_phone]].filter(([,v])=>v).map(([k,v])=>{const li=document.createElement('li');li.textContent=`${k}: ${v}`;return li;}));}
@@ -70,13 +89,13 @@ async function refresh(){
  // Practice consent is not offered before payment on the sponsor path. Until a subscription record exists this is
  // a page-level guard: the section appears after the return from Stripe, or once any consent choice exists.
  const hasConsent=(state.consents||[]).length>0;
- $('practice-section').hidden=!(checkoutReturn||hasConsent||!!state.preferences?.practice_enabled);
+ $('practice-section').hidden=!(live||(membership&&LIVE.includes(membership.status))||checkoutReturn||hasConsent||!!state.preferences?.practice_enabled);
  // Nothing else is offered while the terms need accepting.
- for(const id of ['checkout-section','plan-section','paid-section','settings'])if(!termsCurrent)$(id).hidden=true;
+ for(const id of ['checkout-section','plan-section','paid-section','subscription-section','membership-section','settings'])if(!termsCurrent)$(id).hidden=true;
  // Pending deletion: one banner, one button to keep the account; everything else waits.
  const deletion=state.deletion;
  $('deletion-section').hidden=!deletion;
- if(deletion){$('deletion-copy').textContent=`You asked us to delete your account. Practice has stopped and your consents are withdrawn. The account and its history will be erased on ${new Date(deletion.delete_after).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})} unless you choose to keep it.`;for(const id of ['checkout-section','plan-section','paid-section','settings'])$(id).hidden=true;}
+ if(deletion){$('deletion-copy').textContent=`You asked us to delete your account. Practice has stopped and your consents are withdrawn. The account and its history will be erased on ${new Date(deletion.delete_after).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})} unless you choose to keep it.`;for(const id of ['checkout-section','plan-section','paid-section','subscription-section','membership-section','settings'])$(id).hidden=true;}
  renderContacts();
  renderChannels();
  const prefs=state.preferences||{};
@@ -88,7 +107,7 @@ async function refresh(){
  $('sponsor-line').textContent=intent.help_for==='other'?'You pay for this plan. The people you invite will see this page for their own account.':'You pay for your own plan. When someone else sponsors your practice, their name will show here.';
  $('recipients').replaceChildren(...(state.report_recipients||[]).map(r=>{const li=document.createElement('li');const span=document.createElement('span');span.textContent=`${r.name} — ${r.email}`;const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='Remove';remove.onclick=()=>run(null,()=>api({action:'remove_report_recipient',payload:{recipient_id:r.id}}));li.append(span,remove);return li;}));
  $('recipient-form').querySelector('button').disabled=(state.report_recipients||[]).length>=5;
- message(deletion?'Your account is set to be deleted. Choose "Keep my account" to stay.':!termsCurrent?'Please accept the current terms to continue.':!hasProfile?'Email verified. One more step before payment: finish your profile.':checkoutReturn?'Thank you. Your account is ready.':intent.checkout_started_at?'Your account is ready to manage.':'Your profile is saved. Choose your plan to continue to payment.');
+ message(deletion?'Your account is set to be deleted. Choose "Keep my account" to stay.':!termsCurrent?'Please accept the current terms to continue.':!hasProfile?'Email verified. One more step before payment: finish your profile.':checkoutReturn?'Thank you. Your account is ready.':live||membership?'Your account is ready to manage.':sub?'Your plan has ended. Choose a plan to start again.':intent.checkout_started_at?'Your account is ready to manage.':'Your profile is saved. Choose your plan to continue to payment.');
 }
 async function run(form,work){const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{const result=await work();form?.reset();await refresh();message(result.message||'Saved.');}catch(error){message(error.message,true);}finally{buttons.forEach(b=>b.disabled=false);}}
 const zones=Intl.supportedValuesOf?Intl.supportedValuesOf('timeZone'):['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','UTC'];
@@ -166,5 +185,7 @@ async function startCheckout(payload){const buttons=[...document.querySelectorAl
 $('checkout-form').addEventListener('submit',event=>{event.preventDefault();startCheckout({});});
 $('change-plan').addEventListener('click',()=>{$('checkout-section').hidden=true;$('plan-section').hidden=false;$('plan-section').scrollIntoView({behavior:'smooth',block:'start'});});
 $('plan-form').addEventListener('submit',event=>{event.preventDefault();if(!event.currentTarget.reportValidity())return;startCheckout(fields(event.currentTarget));});
+$('portal-form').addEventListener('submit',async event=>{event.preventDefault();const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{message('Opening your subscription in Stripe…');const r=await billingApi('portal');location.href=r.url;}catch(error){message(error.message,true);buttons.forEach(b=>b.disabled=false);}});
+$('leave-form').addEventListener('submit',event=>{event.preventDefault();if(!confirm('Leave this plan? Your practice stops right away and the person paying is told.'))return;run(null,async()=>{await api({action:'leave_subscription'});return {message:'You’ve left the plan. Practice has stopped, and your account is still yours.'};});});
 $('logout').addEventListener('click',()=>run(null,()=>api({action:'logout'})));
 refresh().catch(error=>message(error.message,true));

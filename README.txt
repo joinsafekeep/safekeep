@@ -16,6 +16,8 @@ UPDATE (Oct 29, 2026): The plan step no longer sends people to a Payment Link. T
 
 UPDATE (Oct 29, 2026, later): /account/ now has the Settings section of the MVP PRD: per-channel practice consent (email, text, phone), phone verification by code (Twilio Verify, once configured), per-channel monthly caps, pause until a date, the weekly-alert opt-in, report recipients, data export and self-service deletion with a 30-day grace period. Deployment steps are in docs/accounts.md under "Settings".
 
+UPDATE (Oct 29, 2026, cancellation): Stripe now tells Safekeep about subscriptions through a webhook (/api/billing/webhook), so /account/ shows the plan, its next payment or end date, seats in use, and a Manage subscription button that opens the Stripe Billing Portal for the right customer. When a plan ends, every seat stops, queued practice is cancelled, and sponsor and participants each get one plain email. A participant can leave a plan from their account. Deployment steps are in docs/accounts.md under "Cancellation".
+
 SCAM ALERTS (added Oct 18, 2026)
 Articles live as markdown in content/scam-alerts/<slug>.md and publish at https://joinsafekeep.com/scam-alerts/<slug>. After adding or editing one, run:
 

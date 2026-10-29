@@ -11,7 +11,7 @@ function setup(overrides={}) {
  return {handler,calls,get options(){return options;}};
 }
 // A chainable stand-in for supabase-js queries: every filter returns the builder, terminal calls resolve rows per table.
-function fakeFrom(rows={}){return table=>{const data=rows[table]||[];const b={};for(const m of ['select','eq','is','order'])b[m]=()=>b;b.maybeSingle=async()=>({data:data[0]||null,error:null});b.then=(ok)=>ok({data,error:null});return b;};}
+function fakeFrom(rows={}){return table=>{const data=rows[table]||[];const b={};for(const m of ['select','eq','is','in','order','limit'])b[m]=()=>b;b.maybeSingle=async()=>({data:data[0]||null,error:null});b.then=(ok)=>ok({data,error:null});return b;};}
 test('password policy enforces bounds without trimming passwords',()=>{
  assert.throws(()=>checkPassword('short'));assert.throws(()=>checkPassword('a'.repeat(129)));assert.equal(checkPassword('a'.repeat(12)),'a'.repeat(12));
 });
@@ -117,15 +117,16 @@ test('terms recorded once: a verified session whose acceptance is already record
  const calls=[];
  const from=fakeFrom();
  const user={id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_signup:{terms_accepted_at:'2026-10-29T10:00:00.000Z',recorded:true,first_name:'Ian',adult_confirmed_at:'yes'},safekeep_intent:{plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom'}}};
- const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user}}),updateUser:async()=>{throw new Error('should not update');}},rpc:async(name,args)=>{calls.push({name,args});return {data:{},error:null};},from})});
+ const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user}}),updateUser:async()=>{throw new Error('should not update');}},rpc:async(name,args)=>{if(name==='my_sponsorship')return {data:[],error:null};calls.push({name,args});return {data:{},error:null};},from})});
  const r=await handler(request());const body=await r.json();
- assert.equal(r.status,200);assert.deepEqual(calls.map(c=>c.args.action),['sync_email']);
+ assert.equal(r.status,200);assert.deepEqual(calls.map(c=>c.args.action),['sync_email']);assert.equal(body.subscription,null);assert.equal(body.membership,null);
  assert.deepEqual(body.intent,{plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom'});assert.deepEqual(body.signup,{first_name:'Ian',adult_confirmed:true});assert.equal(body.policy_version,POLICY_VERSION);
 });
 test('checkout hands off to the Payment Link keyed to the account, and needs a profile first',async()=>{
  let profileExists=false,updated;
  let acceptances=[];
- const from=table=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:profileExists?{user_id:'user-a'}:null,error:null}),eq:async()=>({data:acceptances,error:null})})})});
+ let live=[];
+ const from=table=>{if(table==='subscriptions'){const b={};for(const m of ['select','eq','in'])b[m]=()=>b;b.limit=async()=>({data:live,error:null});return b;}return {select:()=>({eq:()=>({maybeSingle:async()=>({data:profileExists?{user_id:'user-a'}:null,error:null}),eq:async()=>({data:acceptances,error:null})})})};};
  const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user:{id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_intent:{plan:'pairs',billing:'annual'}}}}}),updateUser:async args=>{updated=args;return {data:{},error:null};}},from})});
  assert.equal((await handler(request({action:'checkout'}))).status,400);
  profileExists=true;
@@ -137,6 +138,7 @@ test('checkout hands off to the Payment Link keyed to the account, and needs a p
  assert.equal(url.origin,'https://buy.stripe.com');assert.equal(url.searchParams.get('client_reference_id'),'user-a');assert.equal(url.searchParams.get('prefilled_email'),'a@example.com');
  assert.equal(updated.data.safekeep_intent.plan,'pairs');assert.ok(updated.data.safekeep_intent.checkout_started_at);
  assert.equal((await handler(request({action:'checkout',payload:{plan:'gold',billing:'annual'}}))).status,400);
+ live=[{id:'sub-1'}];const already=await handler(request({action:'checkout'}));assert.equal(already.status,400);assert.match((await already.json()).error,/already have a plan/);
 });
 test('profile carries the adult attestation given at sign-up so it is not asked twice',async()=>{
  const s=setup({getUser:async()=>({data:{user:{id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_signup:{adult_confirmed_at:'2026-10-29T10:00:00.000Z'}}}}})});
