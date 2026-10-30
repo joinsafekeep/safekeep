@@ -22,19 +22,27 @@ function draftCard(d) {
  const variant = d.channel_variant || {};
  const editForm = el('form', { class: 'edit', hidden: '' },
   el('label', {}, 'Subject', el('input', { name: 'subject', value: d.subject || '' })),
-  el('label', {}, 'Message (keep {link} where the link goes)', el('textarea', { name: 'content', rows: '10' })),
+  d.format === 'phone' ? el('div', {},
+   el('label', {}, 'Opening (what the caller says first)', el('textarea', { name: 'opening', rows: '4' })),
+   el('label', {}, 'Hook (must offer "press 1 or say yes")', el('textarea', { name: 'hook', rows: '2' })),
+   el('label', {}, 'Pressure line (played once if they stay quiet)', el('textarea', { name: 'pressure', rows: '2' })))
+   : el('label', {}, 'Message (keep {link} where the link goes)', el('textarea', { name: 'content', rows: '10' })),
+  d.format === 'text' ? el('label', {}, 'Replies it listens for, separated by commas', el('input', { name: 'reply_keywords', value: (variant.reply_keywords || []).join(', ') })) : null,
   el('label', {}, 'Difficulty (1-5)', el('input', { name: 'difficulty', type: 'number', min: '1', max: '5', value: String(d.difficulty) })),
   el('label', {}, 'Why this one works on people', el('textarea', { name: 'debrief', rows: '4' })),
   el('label', {}, 'Warning signs, one per line as: quote | note', el('textarea', { name: 'tells', rows: '5' })),
   el('label', {}, 'What to do next time, one per line', el('textarea', { name: 'next_steps', rows: '3' })),
   el('button', { text: 'Save as a new draft' }));
- editForm.elements.content.value = d.content || '';
+ if (d.format === 'phone') { const sc = variant.script || {}; editForm.elements.opening.value = sc.opening || ''; editForm.elements.hook.value = sc.hook || ''; editForm.elements.pressure.value = sc.pressure || ''; }
+ else editForm.elements.content.value = d.content || '';
  editForm.elements.debrief.value = d.debrief || '';
  editForm.elements.tells.value = (d.tells || []).map(t => `${t.quote} | ${t.note}`).join('\n');
  editForm.elements.next_steps.value = (d.next_steps || []).join('\n');
  editForm.addEventListener('submit', e => {
   e.preventDefault(); const f = editForm.elements;
-  act({ action: 'edit', version_id: d.id, subject: f.subject.value, content: f.content.value, difficulty: Number(f.difficulty.value), debrief: f.debrief.value,
+  const channel_variant = d.format === 'phone' ? { script: { opening: f.opening.value, hook: f.hook.value, pressure: f.pressure.value } }
+   : d.format === 'text' ? { reply_keywords: f.reply_keywords.value.split(',').map(k => k.trim()).filter(Boolean) } : variant;
+  act({ action: 'edit', version_id: d.id, format: d.format, question: d.question, channel_variant, subject: f.subject.value, ...(d.format === 'phone' ? {} : { content: f.content.value }), difficulty: Number(f.difficulty.value), debrief: f.debrief.value,
    tells: f.tells.value.split('\n').filter(Boolean).map(line => { const [quote, ...rest] = line.split('|'); return { quote: quote.trim(), note: rest.join('|').trim() }; }),
    next_steps: f.next_steps.value.split('\n').map(s => s.trim()).filter(Boolean) });
  });

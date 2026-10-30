@@ -49,6 +49,17 @@ set local role anon;
 do $$ begin if (public.coaching_view((select token from t))->>'name') is null then raise exception 'Reply link does not open coaching'; end if; end $$;
 reset role;
 
+-- The stop button on a page opened from a reply link stops texts too.
+insert into public.consent_events(user_id,contact_id,channel,action,policy_version,source) values('22222222-2222-4222-8222-222222222222','c1111111-1111-4111-8111-111111111111','text','grant','v','test-regrant');
+set local role anon;
+do $$ begin
+ if public.stop_info((select token from t))->>'channel'<>'text' then raise exception 'Reply link not recognised for stopping'; end if;
+ if (public.stop_by_token((select token from t))->>'saved')::boolean is not true then raise exception 'Reply link could not stop texts'; end if;
+end $$;
+reset role;
+do $$ begin if safekeep_private.has_grant('c1111111-1111-4111-8111-111111111111','text') then raise exception 'Texts not stopped from reply link'; end if; end $$;
+insert into public.consent_events(user_id,contact_id,channel,action,policy_version,source) values('22222222-2222-4222-8222-222222222222','c1111111-1111-4111-8111-111111111111','text','grant','v','test-regrant');
+
 -- Worried replies: inconclusive, distress event, and every admin is emailed with the reply.
 do $$ declare pid uuid := (select id from public.user_practices where channel='text'); begin
  perform public.record_text_reply(pid,'distress','SMr2','who is this?? I am scared');
@@ -116,13 +127,14 @@ do $$ declare pid uuid; i int; begin
   perform public.mark_practice_sent(pid,'CAu'||i);
   perform public.record_call_event(pid,'ended','CAu'||i,null,null);
  end loop;
- if (select suppression_reason from public.user_contacts where id='c2222222-2222-4222-8222-222222222222')<>'bounced' then raise exception 'Three unanswered calls did not pause calls'; end if;
+ if safekeep_private.has_grant('c2222222-2222-4222-8222-222222222222','phone') then raise exception 'Three unanswered calls did not pause calls'; end if;
+ if (select suppressed_at from public.user_contacts where id='c2222222-2222-4222-8222-222222222222') is not null then raise exception 'Whole number suppressed instead of the one channel'; end if;
  if not exists(select 1 from public.outbound_emails where kind='practice_paused' and to_email='mom@example.invalid' and subject like '%phone calls%') then raise exception 'Participant not told'; end if;
  if exists(select 1 from public.outbound_emails where kind='practice_reveal' and body like '%CAu%') then raise exception 'Reveal sent for unanswered call'; end if;
 end $$;
 
 -- Pressing 9 stops practice calls.
-update public.user_contacts set suppressed_at=null, suppression_reason=null;
+insert into public.consent_events(user_id,contact_id,channel,action,policy_version,source) values('22222222-2222-4222-8222-222222222222','c2222222-2222-4222-8222-222222222222','phone','grant','v','test');
 do $$ declare pid uuid := (select id from public.user_practices where channel='phone' order by sent_at desc limit 1); begin
  perform public.record_call_event(pid,'stop');
  if safekeep_private.has_grant('c2222222-2222-4222-8222-222222222222','phone') then raise exception 'Press 9 did not stop calls'; end if;

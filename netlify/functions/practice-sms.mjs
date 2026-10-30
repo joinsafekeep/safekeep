@@ -12,11 +12,13 @@ import { classifyReply } from './lib/distress.mjs';
 //  worried or confused     marked inconclusive, the reassurance below, and every admin emailed to follow up today
 //  anything else           a practice opportunity; "You did nothing wrong" and the coaching link
 const STOP = /^(stop|stopall|unsubscribe|cancel|end|quit|revoke|optout|opt out)\W*$/i;
+const ASKS_TO_STOP = /\b(stop|unsubscribe|leave me alone|don'?t (text|message|contact|call)|remove me|no more)\b/i;
 const TWILIO_HANDLES = /^(start|unstop|yes start|help|info)\W*$/i;
 export const MESSAGES = {
  report: link => `You spotted it. That was a Safekeep practice, and checking was exactly the right move. Here's what gave it away: ${link}`,
  reply: link => `That was a Safekeep practice. You did nothing wrong. Here is what to look for next time: ${link}`,
  distress: () => 'This is Safekeep, the scam-spotting practice you signed up for. That message was a practice, not a real one, and nothing has happened to your money or your information. You don\'t need to do anything. Someone from our team will check in with you today. Reply STOP any time to end practice texts.',
+ distressStopped: () => 'This is Safekeep, the scam-spotting practice you signed up for. That message was a practice, not a real one, and nothing has happened to your money or your information. We\'ve stopped practice texts to this number. Someone from our team will check in with you today.',
  unknown: origin => `This is Safekeep. We couldn't match your message to a recent practice. If you're unsure about a message, don't reply to it, and call the number on your card or ask someone you trust. Your practice history is at ${origin}/account/`
 };
 const PERMANENT_SMS_ERRORS = new Set(['21211', '21612', '21614', '30005', '30006', '30004']);
@@ -51,6 +53,12 @@ export function makeHandler({ env = process.env, makeClient = createClient, fetc
   let kind = /^report\W*$/i.test(body) ? 'report' : null;
   if (!kind) kind = (await classifyReply({ text: body, replyKeywords: practice.reply_keywords, apiKey: env.ANTHROPIC_API_KEY, model: env.DISTRESS_MODEL || undefined, fetcher })) === 'distress' ? 'distress' : 'reply';
   const result = must(await admin.rpc('record_text_reply', { pid: practice.practice_id, kind, message_sid: params.MessageSid || null, reply_text: body.slice(0, 1000) }));
+  // "Please stop texting me" isn't the bare STOP keyword, so the carrier won't opt the number out, but the person has
+  // asked to stop: practice texts stop here too.
+  if (kind === 'distress' && ASKS_TO_STOP.test(body)) {
+   must(await admin.rpc('stop_texts_from', { from_number: from }));
+   return twiml(`<Message>${xml(MESSAGES.distressStopped())}</Message>`);
+  }
   const link = `${origin}/p/${result.token}`;
   return twiml(`<Message>${xml(kind === 'distress' ? MESSAGES.distress() : MESSAGES[kind](link))}</Message>`);
  };

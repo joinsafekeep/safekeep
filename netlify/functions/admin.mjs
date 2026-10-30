@@ -1,6 +1,7 @@
 import { validateRequest, jsonHeaders, sessionClient } from './lib/session.mjs';
 import { startAlertJob } from './scheduled-alerts.mjs';
 import { startGenerateJob } from './scheduled-generate.mjs';
+import { validateScenario } from './lib/practice-library.mjs';
 
 // /api/admin: the review queue and delivery view behind /admin/. Same sign-in and cookie as /api/account; every
 // action goes through admin_action, which checks admin_users in the database, so this function adds no authority.
@@ -42,6 +43,19 @@ export function makeHandler({ env = process.env, createClient, fetcher = globalT
     if (Array.isArray(body.tells)) payload.tells = body.tells.slice(0, 4).map(t => ({ quote: String(t?.quote || '').slice(0, 300), note: String(t?.note || '').slice(0, 300) }));
     if (Array.isArray(body.next_steps)) payload.next_steps = body.next_steps.slice(0, 3).map(s => String(s).slice(0, 300));
     if (body.question && typeof body.question === 'object') payload.question = body.question;
+    // Texts listen for reply words and calls speak a script, both kept in channel_variant: an edit has to carry them,
+    // or a call would keep saying the old words. A call's content is always its script.
+    const v = body.channel_variant;
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+     payload.channel_variant = { ...(v.from_name ? { from_name: String(v.from_name).slice(0, 80), from_local: String(v.from_local || '').slice(0, 40) } : {}), ...(Array.isArray(v.reply_keywords) ? { reply_keywords: v.reply_keywords.slice(0, 8).map(k => String(k).slice(0, 40)) } : {}), ...(v.script ? { script: { opening: String(v.script.opening || '').slice(0, 1500), hook: String(v.script.hook || '').slice(0, 600), pressure: String(v.script.pressure || '').slice(0, 600) } } : {}) };
+     if (payload.channel_variant.script) payload.content = [payload.channel_variant.script.opening, payload.channel_variant.script.hook, payload.channel_variant.script.pressure].join('\n\n');
+    }
+    // The same check as the seed library and the generator: no real brands, warning signs quoted word for word, a
+    // call that offers "press 1", no "fail" or "victim".
+    if (body.format) {
+     const problems = validateScenario({ code: 'edit', name: 'edit', category: 'edit', learning_objective: 'edit', ...body, ...payload, debrief: payload.debrief ?? body.debrief, question: payload.question ?? body.question }, body.format);
+     if (problems.length) return reply({ error: `Not saved: ${problems.join('; ')}.` }, 400);
+    }
     if (payload.tells && payload.content !== undefined && payload.tells.some(t => !payload.content.includes(t.quote))) return reply({ error: 'Each warning sign has to quote the message word for word.' }, 400);
     const result = must(await client.rpc('admin_action', { action: 'edit', payload }));
     return reply({ message: 'Saved as a new draft. Approve it to publish.', version_id: result?.version_id });

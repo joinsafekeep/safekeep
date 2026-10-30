@@ -180,7 +180,7 @@ begin
   from public.subscription_members m join public.subscriptions s on s.id=m.subscription_id
   join public.user_preferences pr on pr.user_id=m.user_id left join public.user_profiles up on up.user_id=m.user_id
   where m.role='participant' and m.status='active' and public.is_active_participant(m.user_id)
-    and pr.practice_enabled and (pr.paused_until is null or pr.paused_until <= current_date) and pr.max_practices_per_week > 0
+    and pr.practice_enabled and (pr.paused_until is null or pr.paused_until <= (now() at time zone coalesce(up.timezone,'America/New_York'))::date) and pr.max_practices_per_week > 0
     and not exists(select 1 from public.user_practices f where f.user_id=m.user_id and f.delivery_status in ('scheduled','queued'))
     and not exists(select 1 from public.account_deletions d where d.user_id=m.user_id and d.cancelled_at is null)
  loop
@@ -233,3 +233,60 @@ begin
 end $$;
 revoke all on function public.cancel_planned_outside(text[]) from public, anon, authenticated;
 grant execute on function public.cancel_planned_outside(text[]) to service_role;
+
+-- Texts and calls: a number that can't be reached pauses only that channel, not the whole contact (the same number
+-- often takes both). Email keeps the old behaviour: the address is suppressed.
+create or replace function public.mark_practice_failed(pid uuid, reason text, permanent boolean default false) returns void language plpgsql volatile security definer set search_path = '' as $$
+declare p public.user_practices; who text; sponsor_email text; nm text; chan text;
+begin
+ if current_setting('request.jwt.claim.role',true) in ('authenticated','anon') then raise exception 'Not allowed' using errcode='42501'; end if;
+ -- A temporary failure is retried once, half an hour later, with a fresh token; never more than once.
+ if not permanent then
+  update public.user_practices set delivery_status='scheduled', scheduled_at=now()+interval '30 minutes', retries=retries+1, access_token_hash=null, failure_reason=left(reason,200)
+  where id=pid and delivery_status='queued' and retries=0 returning * into p;
+  if found then insert into public.practice_events(user_practice_id,event_type,occurred_at,evidence_source) values(pid,'failed',now(),'sender'); return; end if;
+ end if;
+ update public.user_practices set delivery_status='failed', failure_reason=left(reason,200) where id=pid and delivery_status in ('queued','sent','delivered') returning * into p;
+ if not found then return; end if;
+ insert into public.practice_events(user_practice_id,event_type,occurred_at,evidence_source) values(pid,'failed',now(),'provider');
+ if not permanent then return; end if;
+ if p.channel='email' then
+  update public.user_contacts set suppressed_at=now(), suppression_reason='bounced' where id=p.destination_contact_id and suppressed_at is null;
+  update public.user_practices set delivery_status='cancelled', cancel_reason='contact suppressed' where destination_contact_id=p.destination_contact_id and delivery_status in ('scheduled','queued');
+ else
+  -- A number serves both texts and calls, so only the channel that failed is paused: its consent is withdrawn (the
+  -- person turns it back on once the number is right) and the other channel carries on.
+  if safekeep_private.has_grant(p.destination_contact_id, p.channel) then
+   insert into public.consent_events(user_id,contact_id,channel,action,policy_version,source) values(p.user_id,p.destination_contact_id,p.channel,'revoke','practice-undeliverable','practice-'||p.channel||'-undeliverable');
+  end if;
+  update public.user_practices set delivery_status='cancelled', cancel_reason='channel paused' where destination_contact_id=p.destination_contact_id and channel=p.channel and delivery_status in ('scheduled','queued');
+ end if;
+ chan := case p.channel when 'email' then 'email' when 'text' then 'text messages' else 'phone calls' end;
+ select u.email into who from auth.users u where u.id=p.user_id;
+ select coalesce(pf.preferred_name,pf.first_name,'there') into nm from public.user_profiles pf where pf.user_id=p.user_id;
+ if who is not null then
+  insert into public.outbound_emails(to_email,subject,body,kind) values(who,'Safekeep practice by '||chan||' has paused',
+   'Hello '||coalesce(nm,'there')||','||E'\n\n'||'We couldn''t reach you by '||chan||' just now, so practice on that channel has paused. Nothing else changes. To start it again, check the details under Your contacts and turn it back on under Practice channels on your account page: '||safekeep_private.app_origin()||'/account/'||E'\n\n'||'The Safekeep team','practice_paused');
+ end if;
+ select u.email into sponsor_email from public.subscription_members m join public.subscriptions s on s.id=m.subscription_id join auth.users u on u.id=s.sponsor_user_id
+ where m.user_id=p.user_id and m.role='participant' and m.status in ('active','paused') and s.sponsor_user_id<>p.user_id limit 1;
+ if sponsor_email is not null then
+  insert into public.outbound_emails(to_email,subject,body,kind) values(sponsor_email,coalesce(nm,'Someone on your plan')||'''s practice by '||chan||' has paused',
+   'Hello,'||E'\n\n'||'We couldn''t reach '||coalesce(nm,'someone on your plan')||' by '||chan||', so practice on that channel has paused until they update their details. We''ve let them know. Other channels they chose carry on as before.'||E'\n\n'||'The Safekeep team','practice_paused');
+ end if;
+end $$;
+
+-- Stopping works from every link a practice has: the one in the message and the ones sent after a reply or a call.
+create or replace function public.stop_info(token text) returns jsonb language sql stable security definer set search_path = '' as $$
+ select jsonb_build_object('channel',p.channel,'active',safekeep_private.has_grant(p.destination_contact_id,p.channel))
+ from public.user_practices p where p.sent_at is not null and (p.access_token_hash=encode(extensions.digest(coalesce(token,''),'sha256'),'hex')
+  or p.id=(select l.user_practice_id from public.practice_links l where l.token_hash=encode(extensions.digest(coalesce(token,''),'sha256'),'hex'))) $$;
+create or replace function public.stop_by_token(token text) returns jsonb language plpgsql volatile security definer set search_path = '' as $$
+declare p public.user_practices;
+begin
+ select * into p from public.user_practices where sent_at is not null and (access_token_hash=encode(extensions.digest(coalesce(token,''),'sha256'),'hex')
+  or id=(select l.user_practice_id from public.practice_links l where l.token_hash=encode(extensions.digest(coalesce(token,''),'sha256'),'hex')));
+ if not found then return jsonb_build_object('saved',false); end if;
+ return safekeep_private.stop_practice(p, 'practice-'||p.channel);
+end $$;
+revoke all on function safekeep_private.new_link(uuid,text), safekeep_private.service_only() from public, anon, authenticated;

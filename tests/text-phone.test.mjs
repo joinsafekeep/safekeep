@@ -137,3 +137,27 @@ test('sending texts and calls: only when switched on, with the footer, status ca
  assert.equal(call.Url, `https://joinsafekeep.com/api/practice/voice?p=${PID}&step=start`);
  assert.deepEqual(rpcs.filter(r => r.name === 'mark_practice_sent').map(r => r.args.provider_id), ['SM1', 'CA1']);
 });
+
+test('a worried reply that asks to stop also stops practice texts', async () => {
+ const db = fakeDb();
+ const handler = smsHandler({ env, makeClient: db.makeClient, fetcher: async () => { throw new Error('no model'); } });
+ const reply = await (await handler(signed('https://joinsafekeep.com/api/practice/sms', { From: '+15555550101', Body: 'Please stop texting me, I am scared', MessageSid: 'SMx' }))).text();
+ assert.match(reply, /We&apos;ve stopped practice texts to this number/);
+ assert.deepEqual(db.calls.map(c => c.name).slice(-2), ['record_text_reply', 'stop_texts_from']);
+});
+
+test('admin edits of a call carry the new script into what the call says, and are checked like the library', async () => {
+ const { makeHandler } = await import('../netlify/functions/admin.mjs');
+ const calls = [];
+ const createClient = () => ({ auth: { getUser: async () => ({ data: { user: { id: 'a', email: 'ian@example.com', email_confirmed_at: 'x' } }, error: null }) }, rpc: async (n, a) => { calls.push({ n, a }); return { data: n === 'am_i_admin' ? true : { saved: true, version_id: 'v2' }, error: null }; } });
+ const handler = makeHandler({ env: { APP_ORIGIN: 'https://joinsafekeep.com' }, createClient });
+ const post = body => handler(new Request('https://joinsafekeep.com/api/admin', { method: 'POST', headers: { origin: 'https://joinsafekeep.com', 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+ const base = { action: 'edit', version_id: '22222222-2222-4222-8222-222222222222', format: 'phone', difficulty: 2, debrief: 'A calm debrief.', next_steps: ['I will hang up.', 'I will call my bank.'], question: { prompt: 'Q?', choices: ['a', 'b', 'c'], correct: 0, affirm: 'Yes.', gently: 'Close.' }, tells: [{ quote: 'the security team', note: 'No bank name.' }, { quote: 'press 1', note: 'The hook.' }] };
+ const ok = await post({ ...base, channel_variant: { script: { opening: 'This is the security team.', hook: 'To fix it, press 1 or say yes.', pressure: 'It closes today.' } } });
+ assert.equal(ok.status, 200);
+ const saved = calls.at(-1).a.payload;
+ assert.equal(saved.channel_variant.script.hook, 'To fix it, press 1 or say yes.');
+ assert.equal(saved.content, 'This is the security team.\n\nTo fix it, press 1 or say yes.\n\nIt closes today.');
+ const branded = await post({ ...base, channel_variant: { script: { opening: 'This is the Chase security team.', hook: 'To fix it, press 1 or say yes.', pressure: 'It closes today.' } } });
+ assert.equal(branded.status, 400); assert.match((await branded.json()).error, /real brand/);
+});
