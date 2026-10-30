@@ -117,7 +117,7 @@ test('terms recorded once: a verified session whose acceptance is already record
  const calls=[];
  const from=fakeFrom();
  const user={id:'user-a',email:'a@example.com',email_confirmed_at:'yes',user_metadata:{safekeep_signup:{terms_accepted_at:'2026-10-29T10:00:00.000Z',recorded:true,first_name:'Ian',adult_confirmed_at:'yes'},safekeep_intent:{plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom'}}};
- const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user}}),updateUser:async()=>{throw new Error('should not update');}},rpc:async(name,args)=>{if(['my_sponsorship','sponsor_seats','my_practice_history'].includes(name))return {data:[],error:null};if(name==='is_active_participant')return {data:false,error:null};calls.push({name,args});return {data:{},error:null};},from})});
+ const handler=makeHandler({env:{APP_ORIGIN:origin},createClient:()=>({auth:{getUser:async()=>({data:{user}}),updateUser:async()=>{throw new Error('should not update');}},rpc:async(name,args)=>{if(['my_sponsorship','sponsor_seats','my_practice_history','my_reports'].includes(name))return {data:[],error:null};if(name==='is_active_participant')return {data:false,error:null};calls.push({name,args});return {data:{},error:null};},from})});
  const r=await handler(request());const body=await r.json();
  assert.equal(r.status,200);assert.deepEqual(calls.map(c=>c.args.action),['sync_email']);assert.equal(body.subscription,null);assert.equal(body.membership,null);assert.deepEqual(body.seats,[]);
  assert.deepEqual(body.intent,{plan:'family',billing:'annual',help_for:'other',invitee_name:'Mom'});assert.deepEqual(body.signup,{first_name:'Ian',adult_confirmed:true});assert.equal(body.policy_version,POLICY_VERSION);

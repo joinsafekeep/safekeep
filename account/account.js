@@ -1,4 +1,5 @@
 import { renderCoaching } from '/practice/coaching.js';
+import { participantReport, monthName } from '/practice/report.js';
 const $=id=>document.getElementById(id);
 const params=new URL(location.href).searchParams;
 let state, code=params.get('code');
@@ -220,10 +221,21 @@ function showCoaching(c){
  renderCoaching(panel,c,{answer:async choice=>(await api({action:'practice_answer',payload:{practice_id:c.practice_id,choice}})).result,share:async details=>(await api({action:'practice_share',payload:{practice_id:c.practice_id,...details}})).message});
  panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
+function showReport(r){
+ const {paragraphs,opportunities}=participantReport(r.metrics,{welcome:r.kind==='welcome'});
+ const h=document.createElement('h4');h.textContent=r.kind==='welcome'?'How your first practices went':`${monthName(r.month)}`;
+ const nodes=[h,...paragraphs.map(t=>{const p=document.createElement('p');p.textContent=t;return p;})];
+ if(opportunities.length){const ul=document.createElement('ul');for(const o of opportunities){const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=`${o.name}: see what to look for`;b.onclick=async()=>{try{showCoaching((await api({action:'practice_view',payload:{practice_id:o.practice_id}})).result);}catch(error){message(error.message,true);}};li.append(b);ul.append(li);}nodes.push(ul);}
+ $('report-panel').replaceChildren(...nodes);
+}
 function renderHistory(allowed){
  const history=state.practice_history||[];
- $('history-section').hidden=!allowed||!(state.practising||history.length);
+ $('history-section').hidden=!allowed||!(state.practising||history.length||(state.reports||[]).length);
  $('history-empty').hidden=history.length>0;
+ const reports=state.reports||[];
+ $('reports-empty').hidden=reports.length>0;
+ $('reports-list').replaceChildren(...reports.map(r=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=r.kind==='welcome'?'Your first practices':monthName(r.month);b.onclick=()=>showReport(r);li.append(b);return li;}));
+ if(location.hash==='#reports'&&reports[0]&&!$('report-panel').childElementCount)showReport(reports[0]);
  $('history').replaceChildren(...history.map(p=>{
   const li=document.createElement('li'),span=document.createElement('span');
   span.textContent=`${new Date(p.sent_at).toLocaleDateString(undefined,{month:'long',day:'numeric'})}, ${CHANNEL_LABEL[p.channel]||p.channel}: ${p.name}. ${OUTCOMES[p.result]||''}`;

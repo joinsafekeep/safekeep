@@ -22,8 +22,8 @@ export function makeHandler({ env = process.env, createClient, fetcher = globalT
    if (error || !user || !user.email_confirmed_at) return reply({ signed_in: false }, 401);
    if (!must(await client.rpc('am_i_admin'))) return reply({ error: 'Not found.' }, 404);
    if (request.method === 'GET') {
-    const [queue, library, deliveries, alerts] = await Promise.all([...['queue', 'library', 'deliveries'].map(action => client.rpc('admin_action', { action, payload: {} })), client.rpc('admin_alerts')]);
-    return reply({ admin: true, email: user.email, queue: must(queue), library: must(library), deliveries: must(deliveries), alerts: alerts.error ? [] : alerts.data });
+    const [queue, library, deliveries, alerts, metrics] = await Promise.all([...['queue', 'library', 'deliveries'].map(action => client.rpc('admin_action', { action, payload: {} })), client.rpc('admin_alerts'), client.rpc('admin_metrics')]);
+    return reply({ admin: true, email: user.email, queue: must(queue), library: must(library), deliveries: must(deliveries), alerts: alerts.error ? [] : alerts.data, metrics: metrics.error ? null : metrics.data });
    }
    const raw = await request.text();
    if (raw.length > 32768) return reply({ error: 'Request is too large.' }, 413);
