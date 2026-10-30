@@ -5,4 +5,4 @@ await mkdir('dist');
 for (const entry of await readdir('.')) {
  if (/\.(html|css|js|png|jpg|ico|svg|mp4|xml|txt)$/.test(entry) && entry !== 'README.txt') await cp(entry, `dist/${entry}`);
 }
-for (const folder of (await readdir('.')).filter(name => ['account','scam-alerts','og','terms','privacy','invite'].includes(name))) await cp(folder, `dist/${folder}`, {recursive:true});
+for (const folder of (await readdir('.')).filter(name => ['account','scam-alerts','og','terms','privacy','invite','practice','admin'].includes(name))) await cp(folder, `dist/${folder}`, {recursive:true});

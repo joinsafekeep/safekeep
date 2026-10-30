@@ -216,7 +216,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
    }
    if(action==='state') {
     await finishSignup(user);
-    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion,subscriptions,members,sponsorship,seats,practising]=await Promise.all([
+    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion,subscriptions,members,sponsorship,seats,practising,history]=await Promise.all([
      client.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_preferences').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_contacts').select('*').eq('user_id',user.id).order('created_at'),
@@ -228,7 +228,8 @@ export function makeHandler({ createClient = createServerClient, env = process.e
      client.from('subscription_members').select('subscription_id,user_id,role,status,joined_at').eq('role','participant').in('status',['active','paused']),
      client.rpc('my_sponsorship'),
      client.rpc('sponsor_seats'),
-     client.rpc('is_active_participant',{who:user.id})
+     client.rpc('is_active_participant',{who:user.id}),
+     client.rpc('my_practice_history')
     ]);
     const signup=meta.safekeep_signup || {};
     const deletion=must(pendingDeletion);
@@ -239,7 +240,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
      // is a participant on, if someone else pays.
      subscription:(()=>{const sub=must(subscriptions)?.[0];if(!sub)return null;const seatRows=must(members)||[];return {...sub,seats_used:seatRows.filter(m=>m.subscription_id===sub.id).length};})(),
      membership:(must(sponsorship)||[])[0]||null,
-     seats:must(seats)||[],practising:!!must(practising),
+     seats:must(seats)||[],practising:!!must(practising),practice_history:must(history)||[],
      intent:meta.safekeep_intent || null,signup:{first_name:signup.first_name || null,adult_confirmed:!!signup.adult_confirmed_at},policy_version:POLICY_VERSION,plans:PLANS});
    }
    if(action==='phone_verify_start' || action==='phone_verify_check') {
@@ -325,6 +326,14 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     const messages={invite:'Invitation sent. We’ll email them now.',resend_invite:'A fresh invitation is on its way.',revoke_invite:'Invitation cancelled.',join_own_plan:'You’re on your plan now. Choose how you’d like to practise below.',remove_participant:'They’ve been taken off your plan and told by email.',accept_invitation:'Welcome to Safekeep. Choose how you’d like to practise below.'};
     return reply({message:messages[action]});
    }
+   if(['was_this_safekeep','practice_view','practice_answer','practice_share'].includes(action)) {
+    // "Was this Safekeep?" and the coaching page reopened from the history, once its link has expired.
+    const map={was_this_safekeep:'was_this_safekeep',practice_view:'view',practice_answer:'answer',practice_share:'share'};
+    const payload=body.payload && typeof body.payload==='object' && !Array.isArray(body.payload)?body.payload:{};
+    const result=must(await client.rpc('practice_action',{action:map[action],payload}));
+    if(action==='practice_share') return reply({message:'Sent. They’ll get an email with a link to this page.'});
+    return reply({result});
+   }
    if(action==='accept_policies') {
     // Re-acceptance after a version bump, or acceptance from a flow that has no sign-up metadata.
     await rpc('accept_policies',{source:body.payload?.source==='reprompt'?'reprompt':'signup',version:POLICY_VERSION,documents:['terms','privacy'],ip_hash:hashIp(clientIp, env.POLICY_IP_SALT || origin),user_agent:text(request.headers.get('user-agent'),512)});
@@ -341,7 +350,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
   } catch(error) {
    // Never log credentials, tokens, personal data or the request body.
    if(error?.code==='23505') return reply({error:'That contact is already saved.'},409);
-   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents','Choose a phone contact','Choose a channel','Choose grant or revoke','Text practice needs a cell','Verify this number first','Keep your account first','Give consent for a verified contact','Choose a resume date','Enter their name','Up to five people','That person already','No deletion is pending','Phone verification is not configured','Choose a verification method','You are not on someone','You already have a plan','Start a plan first','Every seat on your plan','Enter their email address','Enter their first name','To practise yourself','Keep the note under','That person already has','Invitation not found','That invitation is closed','You are already practising','Participant not found','This invitation','Sign in with the email address','This plan is no longer active'];
+   const safeMessages=['Use a password','Enter your first name','Confirm you are at least 18','Enter an adult date','Choose a valid timezone','Use international format','Choose a phone type','Check phone label','Only email practice consent','Contact not found','Choose an email contact','Verify this email first','Finish your profile first','Give consent for a verified email','Enter a valid email','Check your plan choice','Choose where the terms','Check the policy version','Choose the documents','Choose a phone contact','Choose a channel','Choose grant or revoke','Text practice needs a cell','Verify this number first','Keep your account first','Give consent for a verified contact','Choose a resume date','Enter their name','Up to five people','That person already','No deletion is pending','Phone verification is not configured','Choose a verification method','You are not on someone','You already have a plan','Start a plan first','Every seat on your plan','Enter their email address','Enter their first name','To practise yourself','Keep the note under','That person already has','Invitation not found','That invitation is closed','You are already practising','Participant not found','This invitation','Sign in with the email address','This plan is no longer active','Choose email, text or phone call','Practice not found','Choose one of the three',"You've shared this one"];
    const message=String(error?.message||'');
    return reply({error:safeMessages.some(prefix=>message.startsWith(prefix))?message:'Unable to complete this request. Please try again.'},400);
   }

@@ -358,18 +358,33 @@ end $$;
 -- One-click stop from any practice message (the email's unsubscribe link and header, later STOP by text and 9 on a
 -- call): consent for that contact and channel is withdrawn and anything planned for it is cancelled. Works for as
 -- long as the message exists, not just 30 days.
+create function safekeep_private.stop_practice(p public.user_practices, source text) returns jsonb language plpgsql volatile security definer set search_path = '' as $$
+begin
+ if safekeep_private.has_grant(p.destination_contact_id, p.channel) then
+  insert into public.consent_events(user_id,contact_id,channel,action,policy_version,source) values(p.user_id,p.destination_contact_id,p.channel,'revoke','practice-stop',source);
+ end if;
+ update public.user_practices set delivery_status='cancelled', cancel_reason='stopped by participant' where user_id=p.user_id and destination_contact_id=p.destination_contact_id and channel=p.channel and delivery_status in ('scheduled','queued');
+ insert into public.practice_events(user_practice_id,event_type,occurred_at,evidence_source) values(p.id,'stop_received',now(),source);
+ return jsonb_build_object('saved',true,'channel',p.channel);
+end $$;
 create function public.stop_by_token(token text) returns jsonb language plpgsql volatile security definer set search_path = '' as $$
 declare p public.user_practices;
 begin
  select * into p from public.user_practices where access_token_hash=encode(extensions.digest(coalesce(token,''),'sha256'),'hex') and sent_at is not null;
  if not found then return jsonb_build_object('saved',false); end if;
- if safekeep_private.has_grant(p.destination_contact_id, p.channel) then
-  insert into public.consent_events(user_id,contact_id,channel,action,policy_version,source) values(p.user_id,p.destination_contact_id,p.channel,'revoke','practice-stop','practice-'||p.channel);
- end if;
- update public.user_practices set delivery_status='cancelled', cancel_reason='stopped by participant' where user_id=p.user_id and destination_contact_id=p.destination_contact_id and channel=p.channel and delivery_status in ('scheduled','queued');
- insert into public.practice_events(user_practice_id,event_type,occurred_at,evidence_source) values(p.id,'stop_received',now(),'practice-'||p.channel);
- return jsonb_build_object('saved',true,'channel',p.channel);
+ return safekeep_private.stop_practice(p, 'practice-'||p.channel);
 end $$;
+-- The same, from a provider webhook (a spam complaint now, STOP by text later). Service role only.
+create function public.stop_by_practice(pid uuid, source text) returns jsonb language plpgsql volatile security definer set search_path = '' as $$
+declare p public.user_practices;
+begin
+ if current_setting('request.jwt.claim.role',true) in ('authenticated','anon') then raise exception 'Not allowed' using errcode='42501'; end if;
+ select * into p from public.user_practices where id=pid;
+ if not found then return jsonb_build_object('saved',false); end if;
+ return safekeep_private.stop_practice(p, left(source,40));
+end $$;
+revoke all on function public.stop_by_practice(uuid,text) from public, anon, authenticated;
+grant execute on function public.stop_by_practice(uuid,text) to service_role;
 
 revoke all on function public.coaching_view(text), public.coaching_answer(text,int), public.coaching_share(text,text,text,text), public.stop_by_token(text) from public;
 grant execute on function public.coaching_view(text), public.coaching_answer(text,int), public.coaching_share(text,text,text,text), public.stop_by_token(text) to anon, authenticated;
@@ -439,7 +454,7 @@ begin
  elsif action='library' then
   return coalesce((select jsonb_agg(jsonb_build_object('format',format,'status',status,'count',n)) from (select format,status,count(*) n from public.practice_scam_versions group by 1,2) x),'[]');
  elsif action='deliveries' then
-  return coalesce((select jsonb_agg(row_to_json(d)) from (select p.id, u.email, p.channel, s.name, p.delivery_status, p.result, p.scheduled_at, p.sent_at, p.cancel_reason, p.failure_reason
+  return coalesce((select jsonb_agg(row_to_json(d)) from (select p.id, u.email, p.channel, s.name, p.delivery_status, p.result, p.scheduled_at, p.sent_at, p.cancel_reason, p.failure_reason, p.destination_contact_id as contact_id
    from public.user_practices p join auth.users u on u.id=p.user_id join public.practice_scam_versions v on v.id=p.scam_version_id join public.practice_scams s on s.id=v.scam_id
    order by coalesce(p.sent_at,p.scheduled_at) desc limit 100) d),'[]');
  elsif action='approve' then

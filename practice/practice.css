@@ -1,0 +1,27 @@
+/* Coaching page, on top of account.css. Calm colours, large type, no red. Works at 200% zoom on a phone. */
+.coaching-page{max-width:760px}
+.reassure{background:#eef5f0;border-color:#b9d3c4}
+.reassure h1{font-size:clamp(32px,6vw,48px);margin:0 0 12px}
+.reassure .big{font-size:22px;font-weight:650}
+.message{border:1px solid #c9d3cb;border-radius:12px;background:#fdfcf8;padding:20px;font-size:18px;overflow-wrap:anywhere}
+.message-head{border-bottom:1px solid #e1e6df;margin-bottom:14px;padding-bottom:8px}
+.message-head p{margin:4px 0}
+.message-head .label{color:#5b6f68}
+.message-body{white-space:pre-wrap}
+.message mark{background:#fbe7a6;color:inherit;padding:1px 3px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.message mark sup{font-weight:700;margin-left:2px;font-size:13px}
+.fake-link{color:#285b50;text-decoration:underline}
+.tells{padding-left:28px}
+.tells li{margin:0 0 14px}
+.tells q{font-weight:650}
+.steps li{margin:0 0 10px}
+.choices{display:grid;gap:12px}
+.choice-button{width:100%;text-align:left;background:#f1f4ef;color:#203d39;border:2px solid #c9d3cb}
+.choice-button.right{border-color:#24574b;background:#e3efe8}
+.choice-button.chosen:not(.right){border-color:#8a9a93}
+.choice-button:disabled{cursor:default;opacity:1}
+.answer{font-size:20px;font-weight:600}
+.context{font-size:18px}
+.stop{background:#f6f6f3}
+@media (max-width:640px){.columns{grid-template-columns:1fr}}
+#status:empty{display:none}

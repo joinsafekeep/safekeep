@@ -20,7 +20,7 @@ values('22222222-2222-4222-8222-222222222222',true,7,((now() at time zone 'Ameri
 insert into public.admin_users(user_id) values('99999999-9999-4999-8999-999999999999');
 -- Two scenarios, one draft email version each.
 insert into public.practice_scams(id,stable_code,name,category) values
-('d1111111-1111-4111-8111-111111111111','delivery-fee','Parcel redelivery fee','delivery'),('d2222222-2222-4222-8222-222222222222','bank-safe-account','Bank "safe account"','bank');
+('d1111111-1111-4111-8111-111111111111','test-delivery-fee','Parcel redelivery fee','delivery'),('d2222222-2222-4222-8222-222222222222','test-safe-account','Bank "safe account"','bank');
 insert into public.practice_scam_versions(id,scam_id,version_number,format,difficulty,subject,content,learning_objective,debrief,tells,channel_variant,next_steps,question) values
 ('e1111111-1111-4111-8111-111111111111','d1111111-1111-4111-8111-111111111111',1,'email',1,'Your parcel is on hold','We tried to deliver your parcel. Pay the $1.99 redelivery fee within 24 hours: {link}','Delivery fees by email are a trick','Real carriers don''t ask for fees by email.',
  '[{"quote":"$1.99 redelivery fee","note":"Carriers don''t charge to redeliver."},{"quote":"within 24 hours","note":"The rush is there so you don''t stop to check."}]','{"from_name":"Parcel Delivery Notice","from_local":"notices"}',array['Delete it.','Check the tracking number on the shop''s own site.'],
@@ -41,10 +41,10 @@ do $$ begin
 end $$;
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999999',true);
 do $$ begin
- if jsonb_array_length(public.admin_action('queue'))<>2 then raise exception 'Queue should list both drafts'; end if;
+ if (select count(*) from jsonb_array_elements(public.admin_action('queue')) q where q->>'id' in ('e1111111-1111-4111-8111-111111111111','e2222222-2222-4222-8222-222222222222'))<>2 then raise exception 'Queue should list both drafts'; end if;
  perform public.admin_action('approve','{"version_id":"e1111111-1111-4111-8111-111111111111"}');
  perform public.admin_action('reject','{"version_id":"e2222222-2222-4222-8222-222222222222","note":"too hard for launch"}');
- if jsonb_array_length(public.admin_action('queue'))<>0 then raise exception 'Queue not cleared'; end if;
+ if exists(select 1 from jsonb_array_elements(public.admin_action('queue')) q where q->>'id' in ('e1111111-1111-4111-8111-111111111111','e2222222-2222-4222-8222-222222222222')) then raise exception 'Queue not cleared'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub','',true);
