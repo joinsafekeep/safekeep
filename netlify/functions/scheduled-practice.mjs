@@ -43,15 +43,20 @@ export async function runPractice({ env = process.env, makeClient = createClient
   const due = must(await admin.rpc('claim_due_practices', { ch: channel, lim: limit })) || [];
   let sent = 0, failed = 0;
   for (const row of due) {
+   let id;
    try {
-    let id;
     if (channel === 'email') id = await sendPracticeEmail({ apiKey: env.SENDGRID_API_KEY, to: row.address, email: buildPracticeEmail(row, status.email), practiceId: row.practice_id, idempotencyKey: row.idempotency_key, fetcher });
     if (channel === 'text') id = (await sendSms({ env, to: row.address, body: practiceText(row, status.email), statusCallback: `${site}/api/practice/sms-status?p=${row.practice_id}`, fetcher })).sid;
     if (channel === 'phone') id = (await placeCall({ env, to: row.address, extension: row.extension, url: `${site}/api/practice/voice?p=${row.practice_id}&step=start`, statusCallback: `${site}/api/practice/voice?p=${row.practice_id}&step=status`, fetcher })).sid;
-    must(await admin.rpc('mark_practice_sent', { pid: row.practice_id, provider_id: id || null })); sent += 1;
    } catch (e) {
     await admin.rpc('mark_practice_failed', { pid: row.practice_id, reason: String(e?.message || e).slice(0, 200), permanent: false }); failed += 1;
+    continue;
    }
+   // Once the provider has it, it's sent: never mark it failed (that would send it again). If recording it fails, try
+   // once more; a row still left queued is closed by the next claim without a second send.
+   let r = await admin.rpc('mark_practice_sent', { pid: row.practice_id, provider_id: id || null });
+   if (r.error) r = await admin.rpc('mark_practice_sent', { pid: row.practice_id, provider_id: id || null });
+   sent += 1;
   }
   results[channel] = { due: due.length, sent, failed };
  }

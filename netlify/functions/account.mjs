@@ -326,9 +326,9 @@ export function makeHandler({ createClient = createServerClient, env = process.e
     const messages={invite:'Invitation sent. We’ll email them now.',resend_invite:'A fresh invitation is on its way.',revoke_invite:'Invitation cancelled.',join_own_plan:'You’re on your plan now. Choose how you’d like to practise below.',remove_participant:'They’ve been taken off your plan and told by email.',accept_invitation:'Welcome to Safekeep. Choose how you’d like to practise below.'};
     return reply({message:messages[action]});
    }
-   if(['was_this_safekeep','practice_view','practice_answer','practice_share'].includes(action)) {
+   if(['was_this_safekeep','confirm_report','practice_view','practice_answer','practice_share'].includes(action)) {
     // "Was this Safekeep?" and the coaching page reopened from the history, once its link has expired.
-    const map={was_this_safekeep:'was_this_safekeep',practice_view:'view',practice_answer:'answer',practice_share:'share'};
+    const map={was_this_safekeep:'was_this_safekeep',confirm_report:'confirm_report',practice_view:'view',practice_answer:'answer',practice_share:'share'};
     const payload=body.payload && typeof body.payload==='object' && !Array.isArray(body.payload)?body.payload:{};
     const result=must(await client.rpc('practice_action',{action:map[action],payload}));
     if(action==='practice_share') return reply({message:'Sent. They’ll get an email with a link to this page.'});
