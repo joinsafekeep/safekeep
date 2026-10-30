@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-import { timingSafeEqual } from 'node:crypto';
 import sourcesConfig from '../../content/alert-sources.json' with { type: 'json' };
 import { collect } from './lib/alert-sources.mjs';
 import { buildPrompt, parseDraft, callClaude, excerpt, weekOf } from './lib/alert-draft.mjs';
 import { checkAlert, parseFrontMatter } from './lib/alert-check.mjs';
 import { github } from './lib/github.mjs';
 import { validateScenario } from './lib/practice-library.mjs';
+import { authorized } from './lib/job-auth.mjs';
 
 // The weekly alert job (a background function, so it may run for several minutes). Started on Monday morning by
 // scheduled-alerts.mjs, or by "Draft this week's alert" on /admin/. Steps, per the PRD:
@@ -106,11 +106,7 @@ export async function runAlertDraft({ env = process.env, makeClient = createClie
  return { slug, pr_url: prUrl, problems: problems || [], attempts, practice_queued: queued.length };
 }
 
-export function authorized(request, secret) {
- const given = Buffer.from(request.headers.get('x-safekeep-job') || '');
- const want = Buffer.from(secret || '');
- return want.length >= 16 && given.length === want.length && timingSafeEqual(given, want);
-}
+export { authorized };
 
 export default async request => {
  if (request.method !== 'POST' || !authorized(request, process.env.ALERTS_JOB_SECRET)) return new Response('Not found', { status: 404 });

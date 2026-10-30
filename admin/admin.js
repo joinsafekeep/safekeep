@@ -98,4 +98,5 @@ async function load() {
  message(`Signed in as ${data.email}. ${data.queue.length} waiting for review.`);
 }
 $('draft-alert').addEventListener('click', () => act({ action: 'draft_alert' }));
+$('draft-practice').addEventListener('click', () => act({ action: 'draft_practice' }));
 load().catch(e => message(e.message, true));

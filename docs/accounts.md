@@ -143,9 +143,19 @@ Built to phase 8 of the MVP PRD. Migration: database/reports.sql (tests: databas
 
 Before deploying: apply database/reports.sql, then `insert into safekeep_private.secrets values ('report_links', '<random 32+ characters>')`. Reports start on the first of the month after practice begins.
 
+## Practice scam generation (added October 29, 2026)
+
+Built to phase 9 of the MVP PRD. Migration: database/generation.sql (tests: database/generation-tests.sql).
+
+- Every Wednesday at 10:30 UTC, `scheduled-generate.mjs` starts `practice-generate-background.mjs`, which asks Claude for six new practice scams (two emails, two texts, two calls) from the latest weekly alert, the past two weeks' source items that didn't make an alert, and `library_gaps()`: published versions per category and channel, drafts waiting, and how often people were caught by each category in the last 90 days (a low rate means people now spot those easily, so harder versions would teach more).
+- Each draft goes through the same check as the seed library, and the ones that pass go into the /admin/ review queue as drafts marked as drafted by the generator. A code that already exists gets the date added. Nothing is published without the click in the review queue, as before. /admin/ also has a "Draft new practice scams now" button.
+- Selection per participant, the review queue and retirement were built in phase 4 and are unchanged.
+
+Before deploying: apply database/generation.sql. It uses the same ANTHROPIC_API_KEY, GITHUB_TOKEN and ALERTS_JOB_SECRET as the alert job; PRACTICE_MODEL optionally picks a different model.
+
 ## Supabase state
 
-Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, settings.sql, billing-cancellation.sql, billing-checkout.sql, invitations.sql, practice.sql, practice-seed.sql, alerts.sql, practice-channels.sql, then reports.sql once when provisioning a separate environment.
+Project: iybcbztvofqihvqhqfoo. Migration account_onboarding_and_consent was applied to the hosted project. database/account-onboarding.sql is the exact SQL record, not an unapplied migration to rerun there. The preceding foundation was created in migration safekeep_account_practice_foundation. database/base-schema.sql records that original migration for review and reproducibility on a clean database. Apply base-schema.sql, account-onboarding.sql, signup-terms.sql, settings.sql, billing-cancellation.sql, billing-checkout.sql, invitations.sql, practice.sql, practice-seed.sql, alerts.sql, practice-channels.sql, reports.sql, then generation.sql once when provisioning a separate environment.
 
 Email auth is enabled, email auto-confirmation is disabled, anonymous users and phone login are disabled (verified through public Auth settings). Never turn on auto-confirmation as a delivery workaround.
 
