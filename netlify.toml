@@ -1,5 +1,5 @@
 [build]
-  command = "npm run check && node scripts/publish-site.mjs"
+  command = "npm run check && node scripts/build-scam-alerts.mjs && node scripts/publish-site.mjs"
   publish = "dist"
   functions = "netlify/functions"
 [build.environment]
@@ -53,3 +53,11 @@
     X-Content-Type-Options = "nosniff"
     X-Robots-Tag = "noindex, nofollow"
     Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+
+# Confirm and unsubscribe links carry an address and a signature: keep them out of referrers and search.
+[[headers]]
+  for = "/scam-alerts/subscribe/*"
+  [headers.values]
+    Cache-Control = "private, no-store"
+    Referrer-Policy = "no-referrer"
+    X-Robots-Tag = "noindex, nofollow"

@@ -1,0 +1,32 @@
+# Makes the share image for any new Scam Alert in a pull request and commits it to the PR branch, so the weekly
+# alert PR that the drafting job opens is complete without anyone running scripts/og-images.py by hand. The page
+# itself is built by Netlify (netlify.toml runs scripts/build-scam-alerts.mjs), and the deploy preview shows drafts.
+name: Scam Alert share images
+on:
+  pull_request:
+    paths: ['content/scam-alerts/**.md']
+permissions:
+  contents: write
+jobs:
+  og-images:
+    # Only for branches in this repository; a fork's branch can't be pushed to.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.47.0 && python -m playwright install --with-deps chromium
+      - run: python3 scripts/og-images.py
+      - name: Commit new images
+        run: |
+          if [ -n "$(git status --porcelain og)" ]; then
+            git config user.name "safekeep-bot"
+            git config user.email "safekeep-bot@users.noreply.github.com"
+            git add og
+            git commit -m "Add share image for new Scam Alert"
+            git push
+          fi

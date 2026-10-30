@@ -24,6 +24,9 @@ const SECTION = '/scam-alerts';
 const CONTENT_DIR = join(ROOT, 'content', 'scam-alerts');
 const OUT_DIR = join(ROOT, 'scam-alerts');
 const SHARE_IMAGE = `${SITE}/hero-video-poster.jpg`;
+// In a Netlify deploy preview (a pull request), drafts are built too, marked and kept out of search, so a drafted
+// weekly alert can be read on a phone before it's merged. Production and local builds leave drafts out.
+const PREVIEW = ['deploy-preview', 'branch-deploy'].includes(process.env.CONTEXT || '');
 const SHARE_IMAGE_ALT = 'An older adult using her smartphone at home';
 // Hand-made pages that belong in the sitemap alongside the generated ones.
 const STATIC_PAGES = [
@@ -213,12 +216,14 @@ const markCurrent = (html) => html.replace(/<a href="\/scam-alerts\/">/g, '<a hr
 
 function page({ title, description, canonical, ogType = 'website', image = SHARE_IMAGE, imageAlt = SHARE_IMAGE_ALT, ld, body }) {
   return `<!doctype html>
-<html lang="en"><head>${gtag}<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${esc(title)}</title><meta name="description" content="${attr(description)}"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/scam-alerts.css"><link rel="canonical" href="${attr(canonical)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:type" content="${ogType}"><meta property="og:site_name" content="Safekeep"><meta property="og:title" content="${attr(title)}"><meta property="og:description" content="${attr(description)}"><meta property="og:url" content="${attr(canonical)}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="${attr(imageAlt)}">${image === SHARE_IMAGE ? '' : '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'}<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${attr(title)}"><meta name="twitter:description" content="${attr(description)}"><meta name="twitter:image" content="${image}"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary">${ld.map(jsonLd).join('')}</head>${bodyTag}
+<html lang="en"><head>${gtag}<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${esc(title)}</title><meta name="description" content="${attr(description)}"><link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/scam-alerts.css"><link rel="canonical" href="${attr(canonical)}"><meta name="robots" content="${PREVIEW ? 'noindex,nofollow' : 'index,follow,max-image-preview:large'}"><meta property="og:type" content="${ogType}"><meta property="og:site_name" content="Safekeep"><meta property="og:title" content="${attr(title)}"><meta property="og:description" content="${attr(description)}"><meta property="og:url" content="${attr(canonical)}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="${attr(imageAlt)}">${image === SHARE_IMAGE ? '' : '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'}<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${attr(title)}"><meta name="twitter:description" content="${attr(description)}"><meta name="twitter:image" content="${image}"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary">${ld.map(jsonLd).join('')}</head>${bodyTag}
 ${markCurrent(chromeTop)}${body}${markCurrent(chromeBottom)}`;
 }
 
 const ORG = { '@type': 'Organization', name: 'Safekeep', url: `${SITE}/`, logo: { '@type': 'ImageObject', url: `${SITE}/apple-touch-icon.png` } };
 
+// The free weekly-alert email list (double opt-in, through /api/alerts). Separate from the practice sign-up above it.
+const alertSignup = `<section class="wrap alert-signup" aria-labelledby="alert-signup-title"><h2 id="alert-signup-title">Get the weekly Scam Alert by email</h2><p>One short email each week about the scams going around, with the warning signs and what to do. Free, and you can unsubscribe with one click.</p><form id="alert-signup-form" novalidate><label for="alert-signup-email">Your email</label><div class="alert-signup-row"><input id="alert-signup-email" name="email" type="email" autocomplete="email" required maxlength="254"><button class="button" type="submit">Send me the alert</button></div><div class="form-trap" aria-hidden="true"><label>Leave this blank<input name="website" tabindex="-1" autocomplete="off"></label></div><p id="alert-signup-status" role="status" aria-live="polite"></p></form><script src="/scam-alerts/alert-signup.js" defer></script></section>`;
 const waitlistCallout = `<section class="waitlist-section"><div class="wrap waitlist-callout"><h2>A little practice.<br>A little more prepared.</h2><p>Help yourself or someone you love stay ready.</p><button class="button" type="button" data-open-waitlist>Sign up <span aria-hidden="true">→</span></button><p class="cta-reassurance">Plans from $5/month. 60-day money-back guarantee.</p></div></section>`;
 
 function card(a) {
@@ -258,7 +263,7 @@ function articlePage(a, all) {
   const body = `<main id="main" class="scam-alerts-page">
 <nav class="breadcrumbs wrap" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li><a href="/scam-alerts/">Scam alerts</a></li><li aria-current="page">${smartQuotes(esc(a.title))}</li></ol></nav>
 <article class="article wrap">
-<header class="article-header hero-copy"><h1>${smartQuotes(esc(a.title))}</h1><p class="article-meta">By the Safekeep team · <time datetime="${a.updated}">Updated ${longDate(a.updated)}</time> · ${a.minutes} min read</p></header>
+${a.draft ? '<p class="draft-banner" role="note"><strong>Draft for review.</strong> This alert isn’t published. Set draft: false in its front matter and merge to publish it.</p>' : ''}<header class="article-header hero-copy"><h1>${smartQuotes(esc(a.title))}</h1><p class="article-meta">By the Safekeep team · <time datetime="${a.updated}">Updated ${longDate(a.updated)}</time> · ${a.minutes} min read</p></header>
 <div class="article-body">
 ${a.bodyHtml}
 </div>
@@ -266,6 +271,7 @@ ${a.bodyHtml}
 <p class="article-disclaimer">Safekeep publishes scam-awareness education, not legal or financial advice. Details change quickly; check the linked sources for the latest guidance.</p>
 </article>
 ${related.length ? `<section class="related wrap" aria-labelledby="related-title"><h2 id="related-title">More scam alerts</h2><ul class="alert-grid">${related.map(card).join('')}</ul><p><a href="/scam-alerts/">See all scam alerts →</a></p></section>` : ''}
+${alertSignup}
 ${waitlistCallout}
 </main>`;
   return page({ title: a.seo_title || `${a.title} | Safekeep`, description: a.description, canonical: a.url, ogType: 'article', image: a.image, imageAlt: a.image === SHARE_IMAGE ? SHARE_IMAGE_ALT : a.title, ld, body });
@@ -293,6 +299,7 @@ ${weekly.length ? `<section class="wrap alerts-list" aria-labelledby="weekly-tit
 <section class="wrap alerts-list" aria-labelledby="guides-title"><h2 id="guides-title">Guides</h2><ul class="alert-grid">${guides.map(card).join('')}</ul></section>
 ${weekly.length > 6 ? `<section class="wrap alerts-list" aria-labelledby="archive-title"><h2 id="archive-title">Past weekly alerts</h2><ul class="alert-archive">${weekly.slice(6).map((a) => `<li><a href="${a.path}">${smartQuotes(esc(a.title))}</a> <span>${longDate(a.published)}</span></li>`).join('')}</ul></section>` : ''}
 <section class="wrap"><div class="help-banner"><div><h3>Worried about something that just happened?</h3><p>You don’t have to figure it out alone.</p></div><button class="outline" type="button" data-help>See what to do next <span aria-hidden="true">→</span></button></div></section>
+${alertSignup}
 ${waitlistCallout}
 </main>`;
   return page({ title, description, canonical: `${SITE}${SECTION}/`, ld, body });
@@ -301,7 +308,7 @@ ${waitlistCallout}
 // ------------------------------------------------------------------- build
 
 const files = readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md')).sort();
-const articles = files.map(parseArticle).filter((a) => !a.draft)
+const articles = files.map(parseArticle).filter((a) => PREVIEW || !a.draft)
   .sort((a, b) => (b.weekly - a.weekly) || b.published.localeCompare(a.published) || a.order - b.order);
 
 if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
@@ -341,5 +348,30 @@ ${articles.map((a) => `- [${a.title}](${a.url}): ${a.description}`).join('\n')}
 
 - Call your bank using the number on your card, report at https://www.ic3.gov/ and https://reportfraud.ftc.gov/, and call the National Elder Fraud Hotline at 1-833-372-8311.
 `);
+
+// scam-alerts/alerts.json: the weekly alerts with the trimmed email version of each (quick answer, warning signs,
+// what to do, and a link to the full post). netlify/functions/deploy-succeeded.mjs reads it after a production deploy
+// and queues any alert published in the last week that hasn't been sent.
+const absolute = (html) => html
+  .replace(/<button class="text-link" type="button" data-open-waitlist>([\s\S]*?) <span aria-hidden="true">→<\/span><\/button>/g, `<a href="${SITE}/pricing">$1</a>`)
+  .replace(/href="\//g, `href="${SITE}/`);
+function section(blocks, test) {
+  const start = blocks.findIndex((b) => b.type === 'h2' && test(stripTags(b.html)));
+  if (start < 0) return null;
+  const out = [];
+  for (let i = start + 1; i < blocks.length && blocks[i].type !== 'h2'; i++) out.push(blocks[i]);
+  return { heading: stripTags(blocks[start].html), html: absolute(blocksToHtml(out)), text: out.map((b) => stripTags(blocksToHtml([b]))).join('\n') };
+}
+const feed = articles.filter((a) => a.weekly && !a.draft).map((a) => {
+  const blocks = renderMarkdown(readFileSync(join(CONTENT_DIR, `${a.slug}.md`), 'utf8').replace(/^---\n[\s\S]*?\n---\n/, ''));
+  const quick = blocks.find((b) => b.type === 'p' && b.text.startsWith('**Quick answer:**'));
+  return {
+    slug: a.slug, title: a.title, published: a.published, url: a.url, image: a.image, description: a.description,
+    quick_answer: quick ? { html: absolute(inline(quick.text.replace(/^\*\*Quick answer:\*\*\s*/, ''))), text: stripTags(inline(quick.text.replace(/^\*\*Quick answer:\*\*\s*/, ''))) } : null,
+    warning_signs: section(blocks, (h) => /warning signs|red flags|how (can|do) you (tell|spot)/i.test(h)),
+    what_to_do: section(blocks, (h) => /^what (should|can) you do|^what to do/i.test(h) && !/already/i.test(h)),
+  };
+});
+writeFileSync(join(OUT_DIR, 'alerts.json'), JSON.stringify({ generated: new Date().toISOString(), alerts: feed }, null, 1));
 
 console.log(`Built ${articles.length} articles, the index, sitemap.xml and llms.txt.`);

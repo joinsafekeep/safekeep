@@ -1,0 +1,13 @@
+{
+ "_about": "Where the Monday collection job looks for the week's scam news (PRD: Scam Alerts content engine > Collect). Each feed is RSS or Atom. 'primary' sources are what alerts should cite; 'news' items are leads, used when an agency didn't publish the story itself. Add state attorney general or insurance department feeds here as you find ones that work.",
+ "lookback_days": 8,
+ "max_items_per_feed": 12,
+ "feeds": [
+  {"publisher": "FBI IC3", "kind": "primary", "url": "https://www.ic3.gov/PSA/RSS"},
+  {"publisher": "FTC Consumer Advice", "kind": "primary", "url": "https://consumer.ftc.gov/blog/gd-rss.xml"},
+  {"publisher": "FTC", "kind": "primary", "url": "https://www.ftc.gov/feeds/press-release-consumer-protection.xml"},
+  {"publisher": "CFPB", "kind": "primary", "url": "https://www.consumerfinance.gov/about-us/newsroom/feed/"},
+  {"publisher": "News", "kind": "news", "url": "https://news.google.com/rss/search?q=scam+older+adults+when:7d&hl=en-US&gl=US&ceid=US:en"},
+  {"publisher": "News", "kind": "news", "url": "https://news.google.com/rss/search?q=elder+fraud+scam+warning+when:7d&hl=en-US&gl=US&ceid=US:en"}
+ ]
+}

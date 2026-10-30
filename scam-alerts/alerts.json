@@ -1,0 +1,27 @@
+{
+ "generated": "2026-10-30T00:14:04.308Z",
+ "alerts": [
+  {
+   "slug": "weekly-2026-10-19",
+   "title": "This Week's Scam Alert: Midterm Election Scams (October 19, 2026)",
+   "published": "2026-10-19",
+   "url": "https://joinsafekeep.com/scam-alerts/weekly-2026-10-19",
+   "image": "https://joinsafekeep.com/og/weekly-2026-10-19.png",
+   "description": "The FBI warns of midterm election scams: fake campaign donations, \"investment pools,\" and voter registration texts. How to spot them and what to do.",
+   "quick_answer": {
+    "html": "Election scams use a real candidate’s name, photo, or even an AI-made voice to ask for donations, sell merchandise, or collect your personal details. The FBI warned about them on October 15, 2026. If a midterm call or text asks for money or information, skip its link and give through the campaign’s own website, and check your registration at vote.gov.",
+    "text": "Election scams use a real candidate’s name, photo, or even an AI-made voice to ask for donations, sell merchandise, or collect your personal details. The FBI warned about them on October 15, 2026. If a midterm call or text asks for money or information, skip its link and give through the campaign’s own website, and check your registration at vote.gov."
+   },
+   "warning_signs": {
+    "heading": "What are the warning signs of an election scam?",
+    "html": "<ul><li>Someone says your donation will earn money or be paid back. The FBI points out that a campaign donation isn’t an investment, so it won’t grow and you won’t get it back.</li><li>You’re asked to recruit other people to boost your share.</li><li>A message says you aren’t registered and includes a link to fix it.</li><li>The call or text feels urgent, makes you angry or worried, or says the race depends on you giving today.</li><li>The phone number, email address, or website doesn’t quite match the campaign or group it claims to be.</li><li>A “voter” form asks for your Social Security number, bank details, or a copy of your ID.</li></ul>",
+    "text": "Someone says your donation will earn money or be paid back. The FBI points out that a campaign donation isn’t an investment, so it won’t grow and you won’t get it back.You’re asked to recruit other people to boost your share.A message says you aren’t registered and includes a link to fix it.The call or text feels urgent, makes you angry or worried, or says the race depends on you giving today.The phone number, email address, or website doesn’t quite match the campaign or group it claims to be.A “voter” form asks for your Social Security number, bank details, or a copy of your ID."
+   },
+   "what_to_do": {
+    "heading": "What should you do if you get one?",
+    "html": "<p>If you want to give, go to the candidate’s or committee’s own website by typing the address yourself, or mail a check to the address they publish. The FBI suggests looking up a PAC or committee on the <a href=\"https://www.fec.gov/\" target=\"_blank\" rel=\"noopener noreferrer\">Federal Election Commission’s website</a>, where you can see whether it’s registered and how it spends its money (<a href=\"https://www.ic3.gov/PSA/2026/PSA261015-3\" target=\"_blank\" rel=\"noopener noreferrer\">FBI IC3</a>). Keep in mind that a fake committee can still be registered, so it’s worth looking at how much of its money goes to “consulting” and “administrative” costs.</p>\n<p>If a message says something’s wrong with your registration, don’t tap the link. You can check your status yourself through <a href=\"https://vote.gov/\" target=\"_blank\" rel=\"noopener noreferrer\">vote.gov</a>, which sends you to your state’s official site, or call your local election office. And if a voice on the phone sounds like a candidate you know, that by itself doesn’t tell you much this year, so it’s fine to hang up and look the campaign up on your own.</p>\n<p class=\"inline-cta\"><strong>Practice helps with calls like these.</strong> A polished political pitch can be hard to turn down in the moment, especially when it’s about something you care about. Safekeep is planning weekly practice texts, emails, and calls, including fake donation requests, each followed by a short note on what gave it away. <a href=\"https://joinsafekeep.com/pricing\">Sign up</a>.</p>",
+    "text": "If you want to give, go to the candidate’s or committee’s own website by typing the address yourself, or mail a check to the address they publish. The FBI suggests looking up a PAC or committee on the Federal Election Commission’s website, where you can see whether it’s registered and how it spends its money (FBI IC3). Keep in mind that a fake committee can still be registered, so it’s worth looking at how much of its money goes to “consulting” and “administrative” costs.\nIf a message says something’s wrong with your registration, don’t tap the link. You can check your status yourself through vote.gov, which sends you to your state’s official site, or call your local election office. And if a voice on the phone sounds like a candidate you know, that by itself doesn’t tell you much this year, so it’s fine to hang up and look the campaign up on your own.\nPractice helps with calls like these. A polished political pitch can be hard to turn down in the moment, especially when it’s about something you care about. Safekeep is planning weekly practice texts, emails, and calls, including fake donation requests, each followed by a short note on what gave it away. Sign up →."
+   }
+  }
+ ]
+}
