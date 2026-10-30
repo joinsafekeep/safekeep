@@ -1,4 +1,5 @@
 import { validateRequest, jsonHeaders, sessionClient } from './lib/session.mjs';
+import { startAlertJob } from './scheduled-alerts.mjs';
 
 // /api/admin: the review queue and delivery view behind /admin/. Same sign-in and cookie as /api/account; every
 // action goes through admin_action, which checks admin_users in the database, so this function adds no authority.
@@ -6,7 +7,8 @@ import { validateRequest, jsonHeaders, sessionClient } from './lib/session.mjs';
 //  POST {action:'approve'|'reject', version_id, note?}
 //  POST {action:'edit', version_id, subject?, content?, difficulty?, debrief?, tells?, next_steps?, question?}
 //  POST {action:'suppress_contact', contact_id}
-export function makeHandler({ env = process.env, createClient } = {}) {
+//  POST {action:'draft_alert', force?}           start this week's alert job now (normally Monday morning)
+export function makeHandler({ env = process.env, createClient, fetcher = globalThis.fetch } = {}) {
  return async request => {
   const headers = jsonHeaders();
   const reply = (body, status = 200) => new Response(JSON.stringify(body), { status, headers });
@@ -20,8 +22,8 @@ export function makeHandler({ env = process.env, createClient } = {}) {
    if (error || !user || !user.email_confirmed_at) return reply({ signed_in: false }, 401);
    if (!must(await client.rpc('am_i_admin'))) return reply({ error: 'Not found.' }, 404);
    if (request.method === 'GET') {
-    const [queue, library, deliveries] = await Promise.all(['queue', 'library', 'deliveries'].map(action => client.rpc('admin_action', { action, payload: {} })));
-    return reply({ admin: true, email: user.email, queue: must(queue), library: must(library), deliveries: must(deliveries) });
+    const [queue, library, deliveries, alerts] = await Promise.all([...['queue', 'library', 'deliveries'].map(action => client.rpc('admin_action', { action, payload: {} })), client.rpc('admin_alerts')]);
+    return reply({ admin: true, email: user.email, queue: must(queue), library: must(library), deliveries: must(deliveries), alerts: alerts.error ? [] : alerts.data });
    }
    const raw = await request.text();
    if (raw.length > 32768) return reply({ error: 'Request is too large.' }, 413);
@@ -45,6 +47,11 @@ export function makeHandler({ env = process.env, createClient } = {}) {
    if (body.action === 'suppress_contact' && id.test(body.contact_id || '')) {
     must(await client.rpc('admin_action', { action: 'suppress_contact', payload: { contact_id: body.contact_id } }));
     return reply({ message: 'Contact suppressed. Nothing more will be sent to it.' });
+   }
+   if (body.action === 'draft_alert') {
+    const started = await startAlertJob({ env, fetcher, force: body.force === true });
+    if (started.skipped) return reply({ error: started.skipped }, 503);
+    return reply({ message: started.started ? 'Started. The draft pull request usually appears within ten minutes; reload this page to see it.' : `The job didn’t start (${started.status}).` });
    }
    return reply({ error: 'Invalid request.' }, 400);
   } catch (error) {

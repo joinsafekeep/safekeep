@@ -71,6 +71,13 @@ async function load() {
   suppress.onclick = () => { if (confirm(`Stop all practice to this ${d.channel === 'email' ? 'address' : 'number'}?`)) act({ action: 'suppress_contact', contact_id: d.contact_id }); };
   return el('tr', {}, el('td', { text: when(d.sent_at || d.scheduled_at) }), el('td', { text: d.email }), el('td', { text: d.channel }), el('td', { text: d.name }), el('td', { text: d.delivery_status }), el('td', { text: d.result }), el('td', { text: d.cancel_reason || d.failure_reason || '' }), el('td', {}, suppress));
  }));
+ $('alerts').replaceChildren(...((data.alerts || []).length ? data.alerts.map(a => {
+  const concerns = a.check_report?.problems?.length || 0;
+  const note = concerns ? ` ${concerns} check concern${concerns === 1 ? '' : 's'}.` : '';
+  const sent = a.status === 'sent' ? ` Sent to ${a.recipient_count}.` : a.status === 'sending' ? ` Sending: ${a.claimed} so far.` : '';
+  return el('li', {}, `${a.week_of}: ${a.title || a.slug} (${a.status}).${note}${sent} `, a.pr_url ? el('a', { href: a.pr_url, target: '_blank', rel: 'noopener', text: 'Open the pull request' }) : null);
+ }) : [el('li', { text: 'No alerts drafted yet.' })]));
  message(`Signed in as ${data.email}. ${data.queue.length} waiting for review.`);
 }
+$('draft-alert').addEventListener('click', () => act({ action: 'draft_alert' }));
 load().catch(e => message(e.message, true));
