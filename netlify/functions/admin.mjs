@@ -1,5 +1,6 @@
 import { validateRequest, jsonHeaders, sessionClient } from './lib/session.mjs';
 import { startAlertJob } from './scheduled-alerts.mjs';
+import { startGenerateJob } from './scheduled-generate.mjs';
 
 // /api/admin: the review queue and delivery view behind /admin/. Same sign-in and cookie as /api/account; every
 // action goes through admin_action, which checks admin_users in the database, so this function adds no authority.
@@ -8,6 +9,7 @@ import { startAlertJob } from './scheduled-alerts.mjs';
 //  POST {action:'edit', version_id, subject?, content?, difficulty?, debrief?, tells?, next_steps?, question?}
 //  POST {action:'suppress_contact', contact_id}
 //  POST {action:'draft_alert', force?}           start this week's alert job now (normally Monday morning)
+//  POST {action:'draft_practice'}                 draft new practice scams now (normally Wednesday morning)
 export function makeHandler({ env = process.env, createClient, fetcher = globalThis.fetch } = {}) {
  return async request => {
   const headers = jsonHeaders();
@@ -52,6 +54,11 @@ export function makeHandler({ env = process.env, createClient, fetcher = globalT
     const started = await startAlertJob({ env, fetcher, force: body.force === true });
     if (started.skipped) return reply({ error: started.skipped }, 503);
     return reply({ message: started.started ? 'Started. The draft pull request usually appears within ten minutes; reload this page to see it.' : `The job didn’t start (${started.status}).` });
+   }
+   if (body.action === 'draft_practice') {
+    const started = await startGenerateJob({ env, fetcher });
+    if (started.skipped) return reply({ error: started.skipped }, 503);
+    return reply({ message: started.started ? 'Started. New drafts usually appear in the queue within five minutes; reload this page to see them.' : `The job didn’t start (${started.status}).` });
    }
    return reply({ error: 'Invalid request.' }, 400);
   } catch (error) {
