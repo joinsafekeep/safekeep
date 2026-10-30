@@ -8,6 +8,8 @@ const recovery=params.get('flow')==='recovery';
 // the page thanks the person and keeps the payment button available in case they didn't finish.
 const checkoutReturn=params.get('checkout')==='success';
 const welcome=params.get('welcome')==='1';
+// The report email's button links to #reports; remember that before the address bar is cleaned.
+const openReports=location.hash==='#reports';
 // Remove auth codes from the address bar before any further navigation.
 if(location.search || location.hash) history.replaceState({},'',location.pathname);
 const message=(text,error=false)=>{ $('status').textContent=text; $('status').classList.toggle('error',error); };
@@ -235,7 +237,7 @@ function renderHistory(allowed){
  const reports=state.reports||[];
  $('reports-empty').hidden=reports.length>0;
  $('reports-list').replaceChildren(...reports.map(r=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=r.kind==='welcome'?'Your first practices':monthName(r.month);b.onclick=()=>showReport(r);li.append(b);return li;}));
- if(location.hash==='#reports'&&reports[0]&&!$('report-panel').childElementCount)showReport(reports[0]);
+ if(openReports&&reports[0]&&!$('report-panel').childElementCount){showReport(reports[0]);$('reports').scrollIntoView();}
  $('history').replaceChildren(...history.map(p=>{
   const li=document.createElement('li'),span=document.createElement('span');
   span.textContent=`${new Date(p.sent_at).toLocaleDateString(undefined,{month:'long',day:'numeric'})}, ${CHANNEL_LABEL[p.channel]||p.channel}: ${p.name}. ${OUTCOMES[p.result]||''}`;
