@@ -65,8 +65,10 @@ export async function runAlertDraft({ env = process.env, makeClient = createClie
 
  // 5 (before the PR, so the PR can say what went to the queue). Practice candidates become drafts.
  const queued = [], skipped = [];
- for (const c of draft.practice) {
-  const format = ['email', 'text', 'phone'].includes(c?.format) ? c.format : null;
+ for (const candidate of draft.practice) {
+  const format = ['email', 'text', 'phone'].includes(candidate?.format) ? candidate.format : null;
+  const sc = candidate?.channel_variant?.script;
+  const c = format === 'phone' && sc ? { ...candidate, content: [sc.opening, sc.hook, sc.pressure].join('\n\n') } : candidate;
   const issues = format ? validateScenario(c, format) : ['unknown format'];
   if (issues.length) { skipped.push(`${c?.name || c?.code || 'unnamed'} (${format || '?'}): ${issues.join('; ')}`); continue; }
   const code = `${c.code}-${date.replace(/-/g, '')}`.slice(0, 60);

@@ -13,15 +13,28 @@ const practiceOrigin = 'https://practice.joinsafekeep.com';
 const token = 'ab'.repeat(24);
 const env = { APP_ORIGIN: origin, PRACTICE_LINK_ORIGIN: practiceOrigin, PRACTICE_EMAIL_DOMAIN: 'notices.example-practice.com', PRACTICE_POSTAL_ADDRESS: 'Safekeep, 1 Main St, Springfield', EMAIL_FROM: 'hello@mail.joinsafekeep.com' };
 
-test('the seed library is valid: 20 email scenarios, 40/40/20 difficulty mix, tells quoted word for word', () => {
+test('the seed library is valid: 20 scenarios in each of email, text and phone, 40/40/20 difficulty mix, tells quoted word for word', () => {
  const library = loadLibrary();
- assert.equal(library.email.length, 20);
- for (const s of library.email) assert.deepEqual(validateScenario(s, 'email'), [], s.code);
- const easy = library.email.filter(s => s.difficulty <= 2).length, hard = library.email.filter(s => s.difficulty >= 4).length;
- assert.equal(easy, 8); assert.equal(hard, 4);
+ for (const format of ['email', 'text', 'phone']) {
+  assert.equal(library[format].length, 20, format);
+  for (const s of library[format]) assert.deepEqual(validateScenario(s, format), [], `${format}/${s.code}`);
+  const easy = library[format].filter(s => s.difficulty <= 2).length, hard = library[format].filter(s => s.difficulty >= 4).length;
+  assert.equal(easy, 8, format); assert.equal(hard, 4, format);
+ }
+ // Each scenario is one scam with a version per channel.
+ assert.deepEqual(library.text.map(s => s.code).sort(), library.email.map(s => s.code).sort());
+ assert.deepEqual(library.phone.map(s => s.code).sort(), library.email.map(s => s.code).sort());
  const sql = buildSql(library);
- assert.equal((sql.match(/'draft'/g) || []).length, 20, 'every version goes in as a draft');
+ assert.equal((sql.match(/'draft'/g) || []).length, 60, 'every version goes in as a draft');
  assert.ok(!/'published'/.test(sql));
+});
+
+test('text and phone rules: reserved reply words, length, and call scripts that offer press 1', () => {
+ const lib = loadLibrary();
+ assert.match(validateScenario({ ...lib.text[1], channel_variant: { reply_keywords: ['STOP'] } }, 'text').join(), /reply keywords cannot/);
+ assert.match(validateScenario({ ...lib.text[0], content: 'x'.repeat(260) + ' {link}' }, 'text').join(), /two text messages/);
+ const call = lib.phone[0];
+ assert.match(validateScenario({ ...call, channel_variant: { script: { ...call.channel_variant.script, hook: 'Stay on the line.' } } }, 'phone').join(), /press 1/);
 });
 
 test('the library check catches a misquoted tell, a real brand and words coaching never uses', () => {
@@ -76,7 +89,8 @@ test('the scheduler sends claimed rows with tracking off and marks each one sent
  const sent = [];
  const fetcher = async (url, init) => { const body = JSON.parse(init.body); sent.push(body); if (body.personalizations[0].to[0].email === 'dad@example.com') return new Response('{}', { status: 500 }); return new Response('', { status: 202, headers: { 'x-message-id': 'sg-1' } }); };
  const result = await runPractice({ env: { SUPABASE_SERVICE_ROLE_KEY: 'k', SENDGRID_API_KEY: 'sg', PRACTICE_SENDING: 'on', ...env }, makeClient: () => client, fetcher });
- assert.deepEqual({ sent: result.sent, failed: result.failed }, { sent: 1, failed: 1 });
+ assert.deepEqual(result.email, { due: 2, sent: 1, failed: 1 });
+ assert.deepEqual(result.channels, ['email'], 'text and calls stay off until Twilio is configured');
  assert.equal(sent[0].tracking_settings.click_tracking.enable, false);
  assert.equal(sent[0].tracking_settings.open_tracking.enable, false);
  assert.equal(sent[0].personalizations[0].custom_args.practice_id, 'p1');

@@ -17,7 +17,7 @@ export function buildSql(library) {
  for (const [format, scenarios] of Object.entries(library)) {
   for (const s of scenarios) {
    const variant = format === 'email' ? { from_name: s.from_name, from_local: s.from_local } : (s.channel_variant || {});
-   lines.push(`with scam as (insert into public.practice_scams(stable_code,name,category) values(${lit(s.code)},${lit(s.name)},${lit(s.category)}) on conflict(stable_code) do update set name=excluded.name returning id)`);
+   lines.push(`with scam as (insert into public.practice_scams(stable_code,name,category) values(${lit(s.code)},${lit(s.name)},${lit(s.category)}) on conflict(stable_code) do update set stable_code=excluded.stable_code returning id)`);
    lines.push(`insert into public.practice_scam_versions(scam_id,version_number,format,difficulty,subject,content,learning_objective,warning_signs,debrief,status,tells,channel_variant,brand_mode,expires_at,generated_by,next_steps,question,context_url)`);
    lines.push(`select scam.id, coalesce((select max(version_number) from public.practice_scam_versions v where v.scam_id=scam.id),0)+1, ${lit(format)}, ${s.difficulty}, ${lit(s.subject)}, ${lit(s.content)}, ${lit(s.learning_objective)}, ${arr((s.tells || []).map(t => t.note))}, ${lit(s.debrief)}, 'draft', ${json(s.tells)}, ${json(variant)}, 'generic', ${s.expires_at ? `${lit(s.expires_at)}::timestamptz` : 'null'}, 'human', ${arr(s.next_steps)}, ${json(s.question)}, ${lit(s.context_url)}`);
    lines.push(`from scam where not exists(select 1 from public.practice_scam_versions v where v.scam_id=scam.id and v.format=${lit(format)});`);
@@ -27,12 +27,15 @@ export function buildSql(library) {
  return lines.join('\n');
 }
 
+// A call's content is its script, so the coaching page and the review queue show what was said.
+const withScript = (s, format) => format === 'phone' && s.channel_variant?.script ? { ...s, content: [s.channel_variant.script.opening, s.channel_variant.script.hook, s.channel_variant.script.pressure].join('\n\n') } : s;
+
 export function loadLibrary(dir = `${root}content/practice-library`) {
  const library = {};
  for (const file of readdirSync(dir).filter(f => f.endsWith('.json'))) {
   const format = file.replace(/\.json$/, '');
   if (!FORMATS.includes(format)) throw new Error(`${file}: name the file email.json, text.json or phone.json`);
-  library[format] = JSON.parse(readFileSync(`${dir}/${file}`, 'utf8')).scenarios;
+  library[format] = JSON.parse(readFileSync(`${dir}/${file}`, 'utf8')).scenarios.map(s => withScript(s, format));
  }
  return library;
 }
