@@ -216,7 +216,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
    }
    if(action==='state') {
     await finishSignup(user);
-    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion,subscriptions,members,sponsorship,seats,practising,history]=await Promise.all([
+    const [profile,preferences,contacts,consents,acceptances,recipients,pendingDeletion,subscriptions,members,sponsorship,seats,practising,history,reports]=await Promise.all([
      client.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_preferences').select('*').eq('user_id',user.id).maybeSingle(),
      client.from('user_contacts').select('*').eq('user_id',user.id).order('created_at'),
@@ -229,7 +229,8 @@ export function makeHandler({ createClient = createServerClient, env = process.e
      client.rpc('my_sponsorship'),
      client.rpc('sponsor_seats'),
      client.rpc('is_active_participant',{who:user.id}),
-     client.rpc('my_practice_history')
+     client.rpc('my_practice_history'),
+     client.rpc('my_reports')
     ]);
     const signup=meta.safekeep_signup || {};
     const deletion=must(pendingDeletion);
@@ -240,7 +241,7 @@ export function makeHandler({ createClient = createServerClient, env = process.e
      // is a participant on, if someone else pays.
      subscription:(()=>{const sub=must(subscriptions)?.[0];if(!sub)return null;const seatRows=must(members)||[];return {...sub,seats_used:seatRows.filter(m=>m.subscription_id===sub.id).length};})(),
      membership:(must(sponsorship)||[])[0]||null,
-     seats:must(seats)||[],practising:!!must(practising),practice_history:must(history)||[],
+     seats:must(seats)||[],practising:!!must(practising),practice_history:must(history)||[],reports:reports.error?[]:(reports.data||[]),
      intent:meta.safekeep_intent || null,signup:{first_name:signup.first_name || null,adult_confirmed:!!signup.adult_confirmed_at},policy_version:POLICY_VERSION,plans:PLANS});
    }
    if(action==='phone_verify_start' || action==='phone_verify_check') {

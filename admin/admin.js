@@ -85,6 +85,16 @@ async function load() {
   const sent = a.status === 'sent' ? ` Sent to ${a.recipient_count}.` : a.status === 'sending' ? ` Sending: ${a.claimed} so far.` : '';
   return el('li', {}, `${a.week_of}: ${a.title || a.slug} (${a.status}).${note}${sent} `, a.pr_url ? el('a', { href: a.pr_url, target: '_blank', rel: 'noopener', text: 'Open the pull request' }) : null);
  }) : [el('li', { text: 'No alerts drafted yet.' })]));
+ const m = data.metrics;
+ if (m?.finished) {
+  const pct = (a, b) => b ? `${Math.round(100 * a / b)}%` : '–';
+  const table = (head, rows) => el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, head.map(h => el('th', { text: h })))), el('tbody', {}, rows.map(r => el('tr', {}, r.map(c => el('td', { text: String(c) })))))));
+  $('metrics').replaceChildren(
+   el('p', { text: `${m.finished} practices finished. Coaching completed on ${m.coaching_completion.coached} of ${m.coaching_completion.engaged} practice opportunities (${pct(m.coaching_completion.coached, m.coaching_completion.engaged)}). Median time from send to first response: ${m.median_minutes_to_first_event ?? '–'} minutes. Consent withdrawals: ${(m.withdrawals || []).map(w => `${w.channel} ${w.n}`).join(', ') || 'none'}.` }),
+   el('h3', { text: 'By channel' }), table(['Channel', 'Finished', 'Opportunity rate', 'Spotted rate'], (m.by_channel || []).map(r => [r.channel, r.n, pct(r.engaged, r.n), pct(r.spotted, r.n)])),
+   el('h3', { text: 'By difficulty' }), table(['Difficulty', 'Finished', 'Opportunity rate'], (m.by_difficulty || []).map(r => [r.difficulty, r.n, pct(r.engaged, r.n)])),
+   el('h3', { text: 'By version' }), el('p', { class: 'meta', text: 'A version retires automatically once 20 or more have finished with under 5% practice opportunities.' }), table(['Scam', 'Channel', 'Version', 'Finished', 'Opportunity rate'], (m.by_version || []).slice(0, 30).map(r => [r.name, r.format, r.version, r.n, pct(r.engaged, r.n)])));
+ }
  message(`Signed in as ${data.email}. ${data.queue.length} waiting for review.`);
 }
 $('draft-alert').addEventListener('click', () => act({ action: 'draft_alert' }));
