@@ -69,9 +69,13 @@ export async function runGenerate({ env = process.env, makeClient = createClient
   if (taken.has(code)) issues.push('repeats an existing scenario');
   if (issues.length) { skipped.push({ name: c?.name || c?.code || 'unnamed', format, issues }); continue; }
   taken.add(code);
-  const scam = must(await admin.from('practice_scams').insert({ stable_code: code, name: c.name, category: c.category }).select('id').single());
+  // One bad draft (a code that clashes with an archived scam, say) is skipped without stopping the rest, and never
+  // leaves a scam behind with no version.
+  const scam = await admin.from('practice_scams').insert({ stable_code: code, name: c.name, category: c.category }).select('id').single();
+  if (scam.error) { skipped.push({ name: c.name, format, issues: [scam.error.message] }); continue; }
   const variant = format === 'email' ? { from_name: c.from_name, from_local: c.from_local } : (c.channel_variant || {});
-  must(await admin.from('practice_scam_versions').insert({ scam_id: scam.id, version_number: 1, format, difficulty: c.difficulty, subject: c.subject || null, content: c.content, learning_objective: c.learning_objective, warning_signs: (c.tells || []).map(t => t.note), debrief: c.debrief, status: 'draft', tells: c.tells, channel_variant: variant, brand_mode: 'generic', generated_by: 'model', next_steps: c.next_steps, question: c.question }));
+  const version = await admin.from('practice_scam_versions').insert({ scam_id: scam.data.id, version_number: 1, format, difficulty: c.difficulty, subject: c.subject || null, content: c.content, learning_objective: c.learning_objective, warning_signs: (c.tells || []).map(t => t.note), debrief: c.debrief, status: 'draft', tells: c.tells, channel_variant: variant, brand_mode: 'generic', generated_by: 'model', next_steps: c.next_steps, question: c.question });
+  if (version.error) { await admin.from('practice_scams').delete().eq('id', scam.data.id); skipped.push({ name: c.name, format, issues: [version.error.message] }); continue; }
   queued.push(`${c.name} (${format}, difficulty ${c.difficulty})`);
  }
  return { queued, skipped };

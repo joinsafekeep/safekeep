@@ -17,7 +17,8 @@ test('the generator asks for six drafts from the alert, leftovers and gaps, and 
   from: table => ({
    select() { return this; }, is() { return this; }, gte() { return this; }, order() { return this; },
    limit: () => Promise.resolve({ data: [{ url: 'https://www.ftc.gov/x', publisher: 'FTC', title: 'Pharmacy scams', text: 'Scammers pose as pharmacies.' }], error: null }),
-   insert(row) { inserted[table].push(row); return { select: () => ({ single: () => Promise.resolve({ data: { id: `${table}-${inserted[table].length}` }, error: null }) }), then: r => r({ data: null, error: null }) }; }
+   insert(row) { inserted[table].push(row); return { select: () => ({ single: () => Promise.resolve({ data: { id: `${table}-${inserted[table].length}` }, error: null }) }), then: r => r({ data: null, error: null }) }; },
+   delete() { return { eq: () => Promise.resolve({ data: null, error: null }) }; }
   })
  };
  const fetcher = async (url, init = {}) => {
