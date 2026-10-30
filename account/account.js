@@ -234,7 +234,15 @@ function renderHistory(allowed){
 $('check-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,out=$('check-result'),button=form.querySelector('button');button.disabled=true;
  try{
   const {result}=await api({action:'was_this_safekeep',payload:fields(form)});
-  if(result.ours){out.textContent='';showCoaching(result.coaching);}
+  if(result.ours){
+   // Show what we sent and ask whether it's the one; only "yes" records it as spotted.
+   out.replaceChildren();const q=document.createElement('p');q.textContent='We did send a practice then. Is this the message you got?';
+   const yes=document.createElement('button');yes.type='button';yes.textContent='Yes, that’s the one';
+   const no=document.createElement('button');no.type='button';no.className='secondary';no.textContent='No, mine was different';
+   yes.onclick=async()=>{yes.disabled=no.disabled=true;try{const r=await api({action:'confirm_report',payload:{practice_id:result.practice_id}});out.textContent='You spotted it. Checking was exactly the right move.';showCoaching(r.result.coaching);}catch(error){out.textContent=error.message;}};
+   no.onclick=()=>{out.textContent='Then it didn’t come from us, so treat it as real. Don’t reply, click anything in it, or call a number it gives you. If it’s about your money, call the number on the back of your card.';$('coaching-panel').replaceChildren();};
+   out.append(q,yes,no);showCoaching(result.coaching);
+  }
   else{out.textContent='We didn’t send anything like that, so treat it as real. Don’t reply, click anything in it, or call a number it gives you. If it’s about your money, call the number on the back of your card. If you’d like a second opinion, show it to someone you trust.';$('coaching-panel').replaceChildren();}
  }catch(error){out.textContent=error.message;}finally{button.disabled=false;}});
 $('logout').addEventListener('click',()=>run(null,()=>api({action:'logout'})));
