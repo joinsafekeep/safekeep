@@ -187,10 +187,59 @@ select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222'
 do $$ declare r jsonb; begin
  r := public.practice_action('was_this_safekeep','{"channel":"text","when":"today"}');
  if (r->>'ours')::boolean then raise exception 'Claimed a text we never sent'; end if;
+ r := public.practice_action('was_this_safekeep','{"channel":"email","when":"yesterday"}');
+ if (r->>'ours')::boolean then raise exception 'Matched yesterday to a practice sent today'; end if;
+ -- Asking shows the practice to compare; nothing is recorded until they say it's the one.
  r := public.practice_action('was_this_safekeep','{"channel":"email","when":"today"}');
- if not (r->>'ours')::boolean or r->'coaching'->>'result'<>'reported' then raise exception 'Report not recorded: %', r; end if;
+ if not (r->>'ours')::boolean or r->'coaching'->>'result'<>'pending' then raise exception 'Asking recorded something: %', r; end if;
+ r := public.practice_action('confirm_report',jsonb_build_object('practice_id',r->>'practice_id'));
+ if r->'coaching'->>'result'<>'reported' then raise exception 'Report not recorded: %', r; end if;
 end $$;
 reset role;
+
+-- The footer's stop page: looking the token up records nothing, and still works after the 30-day coaching window.
+do $$ declare tok text; pid uuid; begin
+ update public.user_practices set created_at=now()-interval '400 days', sent_at=now()-interval '400 days' where sent_at is not null;
+ perform public.plan_practices();
+ update public.user_practices set scheduled_at=now()-interval '1 minute' where delivery_status='scheduled';
+ select token, practice_id into tok, pid from public.claim_due_practices('email');
+ perform public.mark_practice_sent(pid,'sg-stop-info');
+ update public.user_practices set sent_at=now()-interval '45 days' where id=pid;
+ delete from t; insert into t(token) values(tok);
+end $$;
+set local role anon;
+do $$ begin
+ if public.stop_info((select token from t))->>'channel'<>'email' or not (public.stop_info((select token from t))->>'active')::boolean then raise exception 'Stop page lookup failed'; end if;
+ if public.coaching_view((select token from t)) is not null then raise exception 'Coaching open after 30 days'; end if;
+end $$;
+reset role;
+do $$ begin
+ if exists(select 1 from public.practice_events e join public.user_practices p on p.id=e.user_practice_id where p.provider_message_id='sg-stop-info' and e.event_type='link_clicked') then raise exception 'Stop lookup counted as a click'; end if;
+ if (select result from public.user_practices where provider_message_id='sg-stop-info')<>'pending' then raise exception 'Stop lookup changed the result'; end if;
+end $$;
+
+-- An interrupted send (claimed, never marked) is closed as failed, never sent again, and frees the slot.
+do $$ declare pid uuid; begin
+ update public.user_practices set created_at=now()-interval '400 days', sent_at=now()-interval '400 days' where sent_at is not null;
+ perform public.plan_practices();
+ update public.user_practices set scheduled_at=now()-interval '1 minute' where delivery_status='scheduled';
+ select practice_id into pid from public.claim_due_practices('email');
+ update public.user_practices set claimed_at=now()-interval '1 hour' where id=pid;
+ perform 1 from public.claim_due_practices('email');
+ if (select delivery_status from public.user_practices where id=pid)<>'failed' then raise exception 'Interrupted send not closed'; end if;
+ if public.plan_practices()<>1 then raise exception 'Slot not freed'; end if;
+ delete from public.user_practices where delivery_status='scheduled';
+end $$;
+
+-- Pause ends on the participant's own date, not the server's.
+do $$ begin
+ update public.user_preferences set paused_until=(now() at time zone 'America/Chicago')::date + 1;
+ if public.plan_practices()<>0 then raise exception 'Planned during pause'; end if;
+ update public.user_preferences set paused_until=(now() at time zone 'America/Chicago')::date;
+ if public.plan_practices()<>1 then raise exception 'Pause did not end on its local date'; end if;
+ update public.user_preferences set paused_until=null;
+ delete from public.user_practices where delivery_status='scheduled';
+end $$;
 
 -- A temporary failure retries once; a bounce suppresses the contact, pauses that channel and tells both people.
 select set_config('request.jwt.claim.sub','',true);

@@ -28,7 +28,8 @@ alter table public.user_practices
  add column coaching_answer text check(coaching_answer in ('correct','incorrect','skipped')),
  add column cancel_reason text, add column failure_reason text,
  add column shares int not null default 0,
- add column retries int not null default 0;
+ add column retries int not null default 0,
+ add column claimed_at timestamptz;
 -- A family member's copy of a coaching page has its own token, so it can't stop practice, answer the question or count
 -- as a click on the participant's behalf.
 create table public.practice_shares (
@@ -81,7 +82,7 @@ begin
  where v.format=fmt and v.status='published' and s.archived_at is null and (v.expires_at is null or v.expires_at > now() + interval '3 days')
    and (n >= 3 or v.difficulty <= 2)
    and not exists(select 1 from public.user_practices p join public.practice_scam_versions pv on pv.id=p.scam_version_id
-                  where p.user_id=uid and pv.scam_id=v.scam_id and p.created_at > now() - interval '180 days' and p.delivery_status<>'cancelled')
+                  where p.user_id=uid and pv.scam_id=v.scam_id and p.created_at > now() - interval '180 days' and p.delivery_status not in ('cancelled','failed'))
  order by abs(v.difficulty-target)
    - case when exists(select 1 from public.user_practices p join public.practice_scam_versions pv on pv.id=p.scam_version_id join public.practice_scams ps on ps.id=pv.scam_id
                       where p.user_id=uid and p.result='engaged' and ps.category=s.category and p.engaged_at > now() - interval '90 days') then 0.5 else 0 end
@@ -114,7 +115,7 @@ begin
   from public.subscription_members m join public.subscriptions s on s.id=m.subscription_id
   join public.user_preferences pr on pr.user_id=m.user_id left join public.user_profiles up on up.user_id=m.user_id
   where m.role='participant' and m.status='active' and public.is_active_participant(m.user_id)
-    and pr.practice_enabled and (pr.paused_until is null or pr.paused_until <= current_date) and pr.max_practices_per_week > 0
+    and pr.practice_enabled and (pr.paused_until is null or pr.paused_until <= (now() at time zone coalesce(up.timezone,'America/New_York'))::date) and pr.max_practices_per_week > 0
     and not exists(select 1 from public.user_practices f where f.user_id=m.user_id and f.delivery_status in ('scheduled','queued'))
     and not exists(select 1 from public.account_deletions d where d.user_id=m.user_id and d.cancelled_at is null)
  loop
@@ -163,7 +164,7 @@ create function safekeep_private.send_blocker(pid uuid) returns text language sq
  select case
   when not public.is_active_participant(p.user_id) then 'no active plan'
   when not coalesce(pr.practice_enabled,false) then 'practice off'
-  when pr.paused_until is not null and pr.paused_until > current_date then 'paused'
+  when pr.paused_until is not null and pr.paused_until > (now() at time zone coalesce(up.timezone,'America/New_York'))::date then 'paused'
   when exists(select 1 from public.account_deletions d where d.user_id=p.user_id and d.cancelled_at is null) then 'deletion pending'
   when c.verified_at is null or c.suppressed_at is not null then 'contact not usable'
   when not safekeep_private.has_grant(c.id, p.channel) then 'no consent'
@@ -184,6 +185,9 @@ language plpgsql volatile security definer set search_path = '' as $$
 declare r record; blocker text; tok text; day date;
 begin
  if current_setting('request.jwt.claim.role',true) in ('authenticated','anon') then raise exception 'Not allowed' using errcode='42501'; end if;
+ -- A send interrupted after claiming (a timeout or crash) leaves a row queued. It may or may not have gone out, so it
+ -- is closed as failed rather than sent again, which also frees the participant's slot for the next plan.
+ update public.user_practices set delivery_status='failed', failure_reason='send interrupted' where channel=ch and delivery_status='queued' and claimed_at < now() - interval '30 minutes';
  for r in select p.id, coalesce(up.timezone,'America/New_York') tz, coalesce(pr.quiet_hours_start,'20:00') qs, coalesce(pr.quiet_hours_end,'09:00') qe
   from public.user_practices p left join public.user_profiles up on up.user_id=p.user_id left join public.user_preferences pr on pr.user_id=p.user_id
   where p.channel=ch and p.delivery_status='scheduled' and p.scheduled_at <= now() order by p.scheduled_at limit lim for update of p skip locked loop
@@ -200,7 +204,7 @@ begin
    continue;
   end if;
   tok := encode(extensions.gen_random_bytes(24),'hex');
-  update public.user_practices set delivery_status='queued', access_token_hash=encode(extensions.digest(tok,'sha256'),'hex') where id=r.id;
+  update public.user_practices set delivery_status='queued', claimed_at=now(), access_token_hash=encode(extensions.digest(tok,'sha256'),'hex') where id=r.id;
   insert into public.practice_events(user_practice_id,event_type,occurred_at,evidence_source) values(r.id,'queued',now(),'scheduler');
   return query select p.id, c.normalized_value, c.extension, tok, v.difficulty, v.subject, v.content, v.channel_variant, p.idempotency_key
    from public.user_practices p join public.user_contacts c on c.id=p.destination_contact_id join public.practice_scam_versions v on v.id=p.scam_version_id where p.id=r.id;
@@ -358,6 +362,14 @@ end $$;
 -- One-click stop from any practice message (the email's unsubscribe link and header, later STOP by text and 9 on a
 -- call): consent for that contact and channel is withdrawn and anything planned for it is cancelled. Works for as
 -- long as the message exists, not just 30 days.
+-- The footer's stop link opens a page that only asks to confirm. It must not count as opening the practice, and it has
+-- to work for as long as the message exists, so it looks the token up without the 30-day limit and records nothing.
+create function public.stop_info(token text) returns jsonb language sql stable security definer set search_path = '' as $$
+ select jsonb_build_object('channel',p.channel,'active',safekeep_private.has_grant(p.destination_contact_id,p.channel))
+ from public.user_practices p where p.access_token_hash=encode(extensions.digest(coalesce(token,''),'sha256'),'hex') and p.sent_at is not null $$;
+revoke all on function public.stop_info(text) from public;
+grant execute on function public.stop_info(text) to anon, authenticated;
+
 create function safekeep_private.stop_practice(p public.user_practices, source text) returns jsonb language plpgsql volatile security definer set search_path = '' as $$
 begin
  if safekeep_private.has_grant(p.destination_contact_id, p.channel) then
@@ -405,9 +417,9 @@ declare uid uuid := auth.uid(); p public.user_practices; ch text; since timestam
 begin
  if uid is null then raise exception 'Sign in first' using errcode='42501'; end if;
  if action='was_this_safekeep' then
-  -- The participant describes a message they're unsure about: which channel, and roughly when. If Safekeep sent one,
-  -- it is marked "spotted it" (the best outcome) and they get the short congratulatory page. If not, they're told
-  -- plainly that it didn't come from us.
+  -- The participant describes a message they're unsure about: which channel, and roughly when. If Safekeep sent one
+  -- then, it's shown so they can compare it with what they got; nothing is recorded until they confirm it's the one
+  -- (confirm_report), so a real scam that arrived the same week is never mistaken for ours.
   ch := payload->>'channel';
   if ch not in ('email','text','phone') then raise exception 'Choose email, text or phone call'; end if;
   select coalesce(timezone,'America/New_York') into tz from public.user_profiles where user_id=uid;
@@ -416,13 +428,20 @@ begin
                                  when 'yesterday' then (date_trunc('day', now() at time zone tz) - interval '1 day') at time zone tz
                                  else now() - interval '14 days' end;
   select * into p from public.user_practices where user_id=uid and channel=ch and delivery_status in ('sent','delivered') and sent_at >= since
+   and (payload->>'when' is distinct from 'yesterday' or sent_at < (date_trunc('day', now() at time zone tz)) at time zone tz)
    order by (result in ('pending','no_observed_engagement')) desc, sent_at desc limit 1;
   if not found then return jsonb_build_object('ours',false); end if;
+  return jsonb_build_object('ours',true,'practice_id',p.id,'coaching',safekeep_private.coaching_payload(p, false));
+ end if;
+ if action='confirm_report' then
+  -- "Yes, that's the one": spotting it is the best outcome. Reporting after clicking still counts the click.
+  select * into p from public.user_practices where id=(payload->>'practice_id')::uuid and user_id=uid and delivery_status in ('sent','delivered') and sent_at > now() - interval '14 days';
+  if not found then raise exception 'Practice not found' using errcode='42501'; end if;
   if p.result in ('pending','no_observed_engagement') then
    update public.user_practices set result='reported', completed_at=coalesce(completed_at,now()) where id=p.id returning * into p;
   end if;
   insert into public.practice_events(user_practice_id,event_type,occurred_at,evidence_source) values(p.id,'reported',now(),'account');
-  return jsonb_build_object('ours',true,'coaching',safekeep_private.coaching_payload(p, false));
+  return jsonb_build_object('coaching',safekeep_private.coaching_payload(p, false));
  end if;
  select * into p from public.user_practices where id=(payload->>'practice_id')::uuid and user_id=uid and delivery_status in ('sent','delivered') and result<>'pending';
  if not found then raise exception 'Practice not found' using errcode='42501'; end if;
@@ -491,3 +510,8 @@ revoke all on function public.admin_action(text,jsonb) from public,anon;
 grant execute on function public.admin_action(text,jsonb) to authenticated;
 create function public.am_i_admin() returns boolean language sql stable security definer set search_path = '' as $$ select safekeep_private.is_admin(auth.uid()) $$;
 grant execute on function public.am_i_admin() to authenticated;
+
+-- The private helpers run inside the functions above; nobody calls them directly.
+revoke all on function safekeep_private.is_admin(uuid), safekeep_private.has_grant(uuid,text), safekeep_private.in_quiet_hours(timestamptz,text,time,time), safekeep_private.counted(text), safekeep_private.channel_format(text),
+ safekeep_private.pick_version(uuid,text), safekeep_private.random_moment(date,text,time,time), safekeep_private.send_blocker(uuid), safekeep_private.practice_by_token(text), safekeep_private.coaching_payload(public.user_practices,boolean),
+ safekeep_private.answer_question(public.user_practices,int,text), safekeep_private.share_practice(public.user_practices,text,text,text), safekeep_private.stop_practice(public.user_practices,text) from public, anon, authenticated;

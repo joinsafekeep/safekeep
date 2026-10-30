@@ -23,13 +23,18 @@ export async function runPractice({ env = process.env, makeClient = createClient
  const due = must(await admin.rpc('claim_due_practices', { ch: 'email', lim: limit })) || [];
  let sent = 0, failed = 0;
  for (const row of due) {
+  let id;
   try {
-   const email = buildPracticeEmail(row, config);
-   const id = await sendPracticeEmail({ apiKey: env.SENDGRID_API_KEY, to: row.address, email, practiceId: row.practice_id, idempotencyKey: row.idempotency_key, fetcher });
-   must(await admin.rpc('mark_practice_sent', { pid: row.practice_id, provider_id: id || null })); sent += 1;
+   id = await sendPracticeEmail({ apiKey: env.SENDGRID_API_KEY, to: row.address, email: buildPracticeEmail(row, config), practiceId: row.practice_id, idempotencyKey: row.idempotency_key, fetcher });
   } catch (e) {
    await admin.rpc('mark_practice_failed', { pid: row.practice_id, reason: String(e?.message || e).slice(0, 200), permanent: false }); failed += 1;
+   continue;
   }
+  // Once the provider has it, it's sent: never mark it failed (that would send it again). If recording it fails, try
+  // once more; a row still left queued is closed by the next claim without a second send.
+  let r = await admin.rpc('mark_practice_sent', { pid: row.practice_id, provider_id: id || null });
+  if (r.error) r = await admin.rpc('mark_practice_sent', { pid: row.practice_id, provider_id: id || null });
+  sent += 1;
  }
  return { housekeeping, planned, due: due.length, sent, failed };
 }
