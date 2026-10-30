@@ -7,6 +7,7 @@ import { defaults, jsonHeaders } from './lib/session.mjs';
 //  POST {action:'view', token}                         open the page (first open records the click)
 //  POST {action:'answer', token, choice}                the one question (0-2, or null to skip)
 //  POST {action:'share', token, to_email, to_name, from_name}   send the page to a family member
+//  POST {action:'stop_info', token}                     the footer's stop page: which channel, recording nothing
 //  POST {action:'stop', token}                          stop practice by this channel (the footer's link)
 //  POST ?stop=<token>  List-Unsubscribe=One-Click       the mail client's one-click unsubscribe (RFC 8058)
 // The page opens with a POST, not a GET, so link scanners that fetch URLs in incoming mail don't count as a click.
@@ -37,6 +38,10 @@ export function makeHandler({ env = process.env, makeClient = createSupabaseClie
    if (body.action === 'view') {
     const coaching = must(await db.rpc('coaching_view', { token }));
     return reply(coaching ? { found: true, coaching } : { found: false });
+   }
+   if (body.action === 'stop_info') {
+    const info = must(await db.rpc('stop_info', { token }));
+    return reply(info ? { found: true, ...info } : { found: false });
    }
    if (body.action === 'answer') {
     const choice = body.choice === null ? null : Number(body.choice);
