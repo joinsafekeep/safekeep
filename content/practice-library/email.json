@@ -1,0 +1,354 @@
+{
+ "_about": "Seed library of email practice scams (PRD: Practice scam engine > Library). Each one impersonates a role, never a real company or agency, asks for nothing real, and names no real person. scripts/build-practice-seed.mjs turns this file into SQL that inserts every version as a draft, so each one is approved by hand in the admin review queue before it can be sent. {link} becomes the practice link. Every tell's quote must appear word for word in the content.",
+ "scenarios": [
+  {
+   "code": "delivery-redelivery-fee", "name": "Parcel redelivery fee", "category": "delivery", "difficulty": 1,
+   "from_name": "Parcel Delivery Notice", "from_local": "delivery-notice",
+   "subject": "Your parcel is on hold: action needed",
+   "content": "Dear Customer,\n\nWe attempted to deliver your parcel today but no one was available to sign for it. Your parcel is now on hold at our depot.\n\nTo schedule a new delivery, please pay the $1.99 redelivery fee within 24 hours:\n{link}\n\nIf the fee is not paid, your parcel will be returned to the sender.\n\nParcel Delivery Services",
+   "tells": [
+    {"quote": "Dear Customer", "note": "A real delivery notice usually has your name or a tracking number on it."},
+    {"quote": "$1.99 redelivery fee", "note": "Delivery companies don't charge a fee by email to try again. The small amount is there to get your card number."},
+    {"quote": "within 24 hours", "note": "The deadline is there to hurry you past the moment where you'd stop and wonder."}
+   ],
+   "next_steps": ["If I'm expecting something, I'll look up the tracking number on the shop's own website.", "I won't put my card details into a link that came in an email.", "I'll delete it."],
+   "learning_objective": "Fees by email for redelivery are a common way to collect card numbers.",
+   "debrief": "Fake delivery notices are one of the most common scams going, because almost everyone has a parcel on the way at some point. The fee is small on purpose. The goal is your card number, and once they have it, the charges are a lot larger than $1.99.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["Being asked to pay a fee by email to get a parcel redelivered", "The email arriving in the afternoon", "The parcel being held at a depot"], "correct": 0,
+    "affirm": "That's right. A delivery company won't email you asking for a fee to try again, so that request on its own is enough to delete it.",
+    "gently": "That one's understandable, but the clearest sign is the fee. A delivery company won't email you asking for money to try again, so that request on its own is enough to delete it."},
+   "context_url": "/scam-alerts/scams-targeting-seniors-2026"
+  },
+  {
+   "code": "prize-processing-fee", "name": "Sweepstakes win with a fee", "category": "prize", "difficulty": 1,
+   "from_name": "Prize Notification Center", "from_local": "winners",
+   "subject": "CONGRATULATIONS! You have won $850,000",
+   "content": "CONGRATULATIONS!!!\n\nYour email address was selected in our International Sweepstakes Draw and you have won $850,000.00 USD.\n\nTo release your winnings, a one-time processing fee of $250 must be paid. Claim your prize here:\n{link}\n\nThis offer is confidential. Please do not share it with anyone until your funds have been released.\n\nPrize Notification Center\nClaims Department",
+   "tells": [
+    {"quote": "Your email address was selected", "note": "You can't win a contest you never entered."},
+    {"quote": "a one-time processing fee of $250", "note": "Real prizes don't cost money to collect. Paying to receive money is always the scam."},
+    {"quote": "Please do not share it with anyone", "note": "Asking you to keep it secret keeps you from talking to someone who'd spot it straight away."}
+   ],
+   "next_steps": ["If I didn't enter, I didn't win, so I'll delete it.", "I won't pay anything to collect a prize.", "If I'm tempted, I'll show it to someone in the family first."],
+   "learning_objective": "Paying a fee to collect a prize is the core of the prize scam.",
+   "debrief": "Prize scams have been around for a long time because the hope of a windfall is powerful. They all come down to one request, which is to send a little money to receive a lot. Once someone pays, the fees tend to keep coming: taxes, customs, insurance.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The amount of money", "Having to pay a fee to receive the prize", "The capital letters"], "correct": 1,
+    "affirm": "Yes. Paying to receive a prize is the giveaway, whatever the amount and however official it looks.",
+    "gently": "The big number and the capitals are suspicious too, but the clearest sign is the fee. Paying to receive a prize is the giveaway every time."},
+   "context_url": "/scam-alerts/scams-targeting-seniors-2026"
+  },
+  {
+   "code": "tech-support-virus-alert", "name": "Virus warning with a phone number", "category": "tech_support", "difficulty": 1,
+   "from_name": "Computer Security Alert", "from_local": "security-alert",
+   "subject": "WARNING: Virus detected on your computer",
+   "content": "SECURITY WARNING\n\nOur system has detected 5 viruses on your computer. Your personal files, photos and banking information may be at risk.\n\nDo NOT turn off your computer. Doing so may cause permanent data loss.\n\nClick below to speak with a certified technician immediately:\n{link}\n\nComputer Security Center",
+   "tells": [
+    {"quote": "Our system has detected 5 viruses on your computer", "note": "No company can see viruses on your computer from the outside and email you about them."},
+    {"quote": "Do NOT turn off your computer", "note": "Turning it off is safe. This line is there to keep you anxious and on the hook."},
+    {"quote": "speak with a certified technician immediately", "note": "The 'technician' asks for remote access to your computer and then for payment, or for your bank login."}
+   ],
+   "next_steps": ["I'll close the email and won't call or click anything in it.", "If I'm worried about my computer, I'll ask someone I know, or take it to a local shop I chose myself.", "I won't let anyone I didn't contact first connect to my computer."],
+   "learning_objective": "Unsolicited virus warnings that push you to contact a technician are tech support scams.",
+   "debrief": "Tech support scams start with a scare and end with someone connected to your computer. Once they're in, they 'find' problems, charge for fixing them, and sometimes move on to your bank account. Real security software doesn't email you a phone number to call.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["An email claiming it can see viruses on your computer", "The warning about turning off the computer", "The word 'certified'"], "correct": 0,
+    "affirm": "That's it. Nobody can see what's on your computer from the outside and email you about it, so the whole message falls apart right there.",
+    "gently": "That line is meant to scare you, so it's a good one to notice. The first sign, though, is the claim itself: nobody can see what's on your computer from the outside and email you about it."},
+   "context_url": "/scam-alerts/phantom-hacker-gold-courier-scam"
+  },
+  {
+   "code": "bank-account-locked", "name": "Bank account locked", "category": "bank", "difficulty": 1,
+   "from_name": "Account Security Team", "from_local": "account-security",
+   "subject": "Your account has been locked",
+   "content": "Dear Valued Member,\n\nWe noticed unusual sign-in activity on your account and have temporarily locked it for your protection.\n\nTo unlock your account, please verify your identity, including your card number and PIN, within 12 hours:\n{link}\n\nIf you do not verify, your account will be permanently closed.\n\nThank you,\nAccount Security Team",
+   "tells": [
+    {"quote": "Dear Valued Member", "note": "Your bank knows your name and uses it."},
+    {"quote": "your card number and PIN", "note": "No bank ever asks for your PIN, by email or any other way."},
+    {"quote": "your account will be permanently closed", "note": "The threat is there to rush you. Banks don't close accounts because you didn't click a link."}
+   ],
+   "next_steps": ["I'll call the number on the back of my card and ask if anything's wrong.", "I'll sign in the way I always do, by typing the bank's address myself, never from a link.", "I'll never give my PIN to anyone."],
+   "learning_objective": "Your bank never asks for your PIN or card number by email.",
+   "debrief": "Account-locked emails work because they make you feel your money is in danger and offer a quick fix. The fix is the trap. If something really were wrong, you'd find out by calling the number on your card or signing in the way you normally do.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The email mentions unusual activity", "It asks for your card number and PIN", "It was sent by a security team"], "correct": 1,
+    "affirm": "Yes. A bank will never ask for your PIN, so that request alone tells you it's a scam.",
+    "gently": "Real banks do sometimes mention unusual activity, which is why this one is convincing. The giveaway is the request for your PIN. A bank will never ask for it."}
+  },
+  {
+   "code": "utility-shutoff-today", "name": "Power shut-off today", "category": "utility", "difficulty": 2,
+   "from_name": "Utility Billing Department", "from_local": "billing-dept",
+   "subject": "Final notice: service disconnection scheduled for today",
+   "content": "FINAL DISCONNECTION NOTICE\n\nOur records show your account is past due by $186.42. Your electric service is scheduled to be disconnected today at 4:00 PM.\n\nTo avoid disconnection, payment must be made immediately. We accept payment by prepaid gift card or through our secure payment portal:\n{link}\n\nTo stop the disconnection, do not contact your local office. Use only the link above.\n\nUtility Billing Department",
+   "tells": [
+    {"quote": "scheduled to be disconnected today at 4:00 PM", "note": "Utilities send several notices by post over weeks before any shut-off. Same-day warnings by email are made up."},
+    {"quote": "prepaid gift card", "note": "No utility takes gift cards. When someone asks for one, it's a scam every time."},
+    {"quote": "do not contact your local office", "note": "Telling you not to check is the clearest sign they know checking would expose them."}
+   ],
+   "next_steps": ["I'll call the number on my last paper bill and ask about my account.", "I'll never pay a bill with a gift card.", "I'll delete it."],
+   "learning_objective": "Same-day shut-off threats and gift card payments are utility scam signs.",
+   "debrief": "Utility scams lean on a real fear, sitting in the dark or the cold. Real utilities give plenty of written notice and take ordinary payments. A demand to pay today, by gift card, without checking with anyone, is three warning signs in one.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The exact dollar amount", "Being told not to contact your local office", "The 4:00 PM time"], "correct": 1,
+    "affirm": "Right. A real company never tells you not to check with them, so that line gives the whole thing away.",
+    "gently": "The exact amount is meant to look official, which is clever. The surest sign is being told not to contact your local office. A real company would never say that."}
+  },
+  {
+   "code": "jury-duty-warrant", "name": "Missed jury duty fine", "category": "government", "difficulty": 2,
+   "from_name": "County Court Services", "from_local": "court-services",
+   "subject": "Notice of failure to appear for jury duty",
+   "content": "NOTICE OF FAILURE TO APPEAR\n\nOur records indicate that you did not report for jury duty as summoned. A bench warrant may be issued for your arrest.\n\nYou can resolve this matter today by paying a fine of $495. Once paid, the warrant will be cancelled.\n\nPay your fine securely here:\n{link}\n\nFailure to respond within 24 hours will result in further legal action.\n\nCounty Court Services, Jury Division",
+   "tells": [
+    {"quote": "A bench warrant may be issued for your arrest", "note": "Courts don't threaten arrest by email. A missed summons is handled by post and in person."},
+    {"quote": "paying a fine of $495", "note": "Courts don't collect fines through email links, and paying never cancels a warrant."},
+    {"quote": "within 24 hours", "note": "The short deadline is there to scare you into paying before you call anyone."}
+   ],
+   "next_steps": ["I'll look up the court's number myself and call to ask.", "I won't pay any fine from an email link.", "I'll tell someone in the family, because these scams count on embarrassment."],
+   "learning_objective": "Courts don't threaten arrest or collect fines by email.",
+   "debrief": "Jury duty scams work on worry and embarrassment. Nobody wants to be in trouble with a court, so people pay quickly and quietly. A real court would never ask for payment to cancel a warrant, and you can always call the clerk's office yourself to check.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["Being asked to pay a fine to cancel an arrest warrant", "The words 'Jury Division'", "The email having a subject line"], "correct": 0,
+    "affirm": "Yes. Courts don't take payments by email to make a warrant go away, so that offer gives it away.",
+    "gently": "Official-sounding names are part of the disguise. The clearest sign is the payment: courts don't take money by email to make a warrant go away."},
+   "context_url": "/scam-alerts/scams-targeting-seniors-2026"
+  },
+  {
+   "code": "family-new-email", "name": "\"It's me\" from a new address", "category": "family_emergency", "difficulty": 2,
+   "from_name": "Me (new email)", "from_local": "its-me",
+   "subject": "It's me, I lost my phone",
+   "content": "Hi, it's me. I lost my phone and I'm using a friend's email for now, so don't use my old number.\n\nI'm in a bit of trouble and I really need your help. I need to pay something today and my cards aren't working. Can you send $600? I'll pay you back as soon as I sort this out.\n\nPlease don't tell Mom or Dad yet, I'll explain everything later.\n\nHere's where you can send it:\n{link}\n\nThank you so much, I love you.",
+   "tells": [
+    {"quote": "Hi, it's me", "note": "Someone you know would use their name. 'It's me' lets you fill in who you think it is."},
+    {"quote": "don't use my old number", "note": "This stops you from calling them back to check, which is exactly what you should do."},
+    {"quote": "Please don't tell Mom or Dad yet", "note": "Asking you to keep it secret keeps you from hearing that they're perfectly fine."}
+   ],
+   "next_steps": ["I'll call them on the number I already have, whatever the message says.", "If I can't reach them, I'll call someone else in the family before I send anything.", "I won't send money to a link or a new account because of a message."],
+   "learning_objective": "\"It's me\" messages from a new address asking for urgent, secret money are family emergency scams.",
+   "debrief": "This is the email version of the grandparent scam. It works because it lands on love and worry at the same time. The details that make it effective, a new address, a secret, a deadline, are the same ones that give it away. Calling the number you already have settles it in a minute.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The message says 'I love you'", "It asks you not to use their old number and to keep it secret", "It asks for $600 instead of a larger amount"], "correct": 1,
+    "affirm": "Exactly. Being steered away from calling them and from telling the family is how these scams keep you from finding out the truth.",
+    "gently": "The amount can feel reassuring, which is part of the trick. The clearest sign is being steered away from calling them and from telling the family."},
+   "context_url": "/scam-alerts/ai-voice-cloning-grandparent-scam"
+  },
+  {
+   "code": "charity-disaster-match", "name": "Disaster relief with a matching deadline", "category": "charity", "difficulty": 2,
+   "from_name": "Disaster Relief Fund", "from_local": "relief",
+   "subject": "Families need you tonight: donations matched until midnight",
+   "content": "Dear Friend,\n\nThousands of families lost everything in this week's storms. Tonight, every dollar you give will be DOUBLED by a generous donor, but only until midnight.\n\nPlease give $50, $100 or whatever you can. Donations by gift card or wire transfer reach families fastest.\n\nGive now:\n{link}\n\nWith gratitude,\nThe Disaster Relief Fund",
+   "tells": [
+    {"quote": "only until midnight", "note": "Real charities welcome donations any time. A countdown is there to stop you from looking the charity up first."},
+    {"quote": "Donations by gift card or wire transfer", "note": "Established charities take cards and checks. Gift cards and wires can't be traced or refunded."},
+    {"quote": "Dear Friend", "note": "A charity you've given to before would know your name."}
+   ],
+   "next_steps": ["I'll give to a charity I already know, by going to its website myself.", "I'll look up any charity I don't know before giving.", "I won't give by gift card or wire."],
+   "learning_objective": "Fake charities use deadlines and untraceable payment methods.",
+   "debrief": "Fake charities show up after every disaster because generous people want to help quickly. Giving through a charity you already know, on its own website, gets your money to the people who need it.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["Mentioning storms in the news", "Asking for gift cards or wire transfers", "Suggesting amounts like $50 or $100"], "correct": 1,
+    "affirm": "Yes. Real charities don't ask for gift cards or wires, so that's the clearest sign.",
+    "gently": "Mentioning real news is what makes these convincing. The clearest sign is the payment method: real charities don't ask for gift cards or wires."}
+  },
+  {
+   "code": "medicare-plan-change", "name": "Medicare plan ending", "category": "medicare", "difficulty": 3, "expires_at": "2026-12-08",
+   "from_name": "Medicare Benefits Office", "from_local": "benefits",
+   "subject": "Important: changes to your Medicare coverage for 2027",
+   "content": "Dear Beneficiary,\n\nDuring this year's Open Enrollment period, your current plan has been flagged for changes that may affect your coverage starting January 1.\n\nTo avoid a gap in coverage, please review and confirm your plan within 48 hours. You will need your Medicare number to continue.\n\nReview your coverage:\n{link}\n\nIf you have already reviewed your plan, you may ignore this message.\n\nMedicare Benefits Office\nBeneficiary Services",
+   "tells": [
+    {"quote": "within 48 hours", "note": "Open Enrollment runs for weeks. Nobody official gives you 48 hours to act."},
+    {"quote": "You will need your Medicare number to continue", "note": "Your Medicare number is valuable to scammers, who use it to bill for things you never got. Keep it for your doctors and pharmacy."},
+    {"quote": "Medicare Benefits Office", "note": "Medicare doesn't email you to ask for your number. If something needed checking, you'd get a letter."}
+   ],
+   "next_steps": ["I'll call the number on my Medicare card, or 1-800-MEDICARE, if I want to check my plan.", "I won't type my Medicare number into a link from an email.", "I'll review plans with someone I trust, like a local SHIP counselor."],
+   "learning_objective": "Medicare doesn't email asking for your Medicare number, and Open Enrollment deadlines aren't 48 hours.",
+   "debrief": "This one is harder because it arrives during real Open Enrollment, when you're expecting mail about your plan. The polite last line ('you may ignore this message') makes it feel routine. What gives it away is the short deadline and the request for your Medicare number.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["It mentions Open Enrollment", "It asks for your Medicare number with a 48-hour deadline", "It says you may ignore it"], "correct": 1,
+    "affirm": "That's right. A short deadline plus a request for your Medicare number is the combination to watch for.",
+    "gently": "It does feel more trustworthy because it mentions the real Open Enrollment. The giveaway is the 48-hour deadline and the request for your Medicare number."},
+   "context_url": "/scam-alerts/medicare-open-enrollment-scams"
+  },
+  {
+   "code": "tax-refund-pending", "name": "Tax refund waiting", "category": "government", "difficulty": 3,
+   "from_name": "Tax Refund Department", "from_local": "refunds",
+   "subject": "You have a pending tax refund of $1,284.00",
+   "content": "Hello,\n\nAfter a review of your recent tax filing, we have determined that you are eligible for an additional refund of $1,284.00.\n\nTo receive your refund by direct deposit, please confirm your bank account details and Social Security number using the secure form below:\n{link}\n\nRefunds not claimed within 5 business days will be returned to the Treasury.\n\nTax Refund Department\nTaxpayer Services",
+   "tells": [
+    {"quote": "eligible for an additional refund of $1,284.00", "note": "The tax agency contacts people by post, not by email, and certainly not to hand out surprise money."},
+    {"quote": "your bank account details and Social Security number", "note": "These two together are what someone needs to take over your accounts or file a return in your name."},
+    {"quote": "within 5 business days", "note": "A refund you're owed doesn't vanish because you didn't click quickly."}
+   ],
+   "next_steps": ["If I think I'm owed a refund, I'll check on the tax agency's website by typing the address myself.", "I'll never send my Social Security number in reply to an email.", "I'll delete it."],
+   "learning_objective": "The tax agency doesn't email about refunds or ask for your Social Security number by email.",
+   "debrief": "A refund email is pleasant to get, which is why it works better than a threat for some people. Good news can lower your guard. The request for your bank details and Social Security number is what to notice.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The refund amount", "Being asked for your bank details and Social Security number by email", "The word 'Treasury'"], "correct": 1,
+    "affirm": "Yes. Nobody official asks for your Social Security number and bank details through an email link.",
+    "gently": "The exact amount is there to seem believable. The clearest sign is the request for your Social Security number and bank details, which nobody official asks for by email."}
+  },
+  {
+   "code": "subscription-renewal-refund", "name": "Surprise renewal charge", "category": "tech_support", "difficulty": 3,
+   "from_name": "Billing Support", "from_local": "billing",
+   "subject": "Receipt: your annual protection plan has renewed ($399.99)",
+   "content": "Thank you for your purchase.\n\nYour annual Device Protection Plan has been renewed automatically.\n\nAmount charged: $399.99\nPayment method: card on file\nRenewal period: 12 months\n\nIf you did not authorize this renewal, you have 24 hours to request a refund. To cancel and receive your refund, open your billing page:\n{link}\n\nBilling Support Team",
+   "tells": [
+    {"quote": "Your annual Device Protection Plan", "note": "If you don't recognize the plan, that's because there isn't one. The surprise is meant to send you straight to the link."},
+    {"quote": "you have 24 hours to request a refund", "note": "The rush makes you act before checking your actual bank or card statement."},
+    {"quote": "To cancel and receive your refund", "note": "The 'refund' is the trap. These scams end with someone on your computer 'fixing' an overpayment from your bank account."}
+   ],
+   "next_steps": ["I'll check my bank or card statement directly to see if there's really a charge.", "If I see a charge I don't recognize, I'll call the number on the back of my card.", "I won't call or click anything in a receipt I don't recognize."],
+   "learning_objective": "Fake renewal receipts push you to 'cancel' through a scammer.",
+   "debrief": "Fake receipts are clever because they make you want to act to protect yourself. The urge to get your money back is what sends people to the link or phone number. Your real statement will tell you whether anything was charged.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["A receipt for a plan you never bought, pushing you to cancel within 24 hours", "The word 'receipt'", "The amount ending in .99"], "correct": 0,
+    "affirm": "Right. A charge you don't recognize with a short refund window is the setup, and checking your own statement takes the sting out of it.",
+    "gently": "Prices ending in .99 are common in real receipts too. The clearest sign is a charge for something you never bought, paired with a rush to 'cancel'."}
+  },
+  {
+   "code": "romance-wrong-address", "name": "Friendly stranger with photos", "category": "romance", "difficulty": 3,
+   "from_name": "Daniel", "from_local": "daniel.w",
+   "subject": "I think I have the wrong email, sorry!",
+   "content": "Hello,\n\nI'm so sorry, I think I have written to the wrong address. I was trying to reach an old friend from my time in the service. I hope I am not bothering you.\n\nYou seem like a kind person, and to be honest it has been a lonely year since I lost my wife. I am working overseas on an engineering contract right now.\n\nIf you would like to talk, I would enjoy that very much. Here are some photos from where I am working:\n{link}\n\nWarm wishes,\nDaniel",
+   "tells": [
+    {"quote": "I think I have written to the wrong address", "note": "The 'wrong address' opener is a way to start a conversation with a stranger without looking like a sales pitch."},
+    {"quote": "it has been a lonely year since I lost my wife", "note": "Sharing a loss straight away builds sympathy fast. It's a common opening in romance scams."},
+    {"quote": "working overseas on an engineering contract", "note": "Working abroad explains why they can never meet or video call, and later why they need money sent."}
+   ],
+   "next_steps": ["I won't reply to messages from strangers who wrote to me 'by mistake'.", "I won't click photos or links from someone I don't know.", "If I do start talking to someone online, I'll never send money to a person I haven't met."],
+   "learning_objective": "\"Wrong address\" openers from lonely, overseas strangers are how romance scams begin.",
+   "debrief": "Romance scams start slowly and kindly, and money doesn't come up for weeks or months. That's why the opening is the best place to spot them. A stranger who writes 'by mistake', shares a loss and lives somewhere far away fits a pattern scammers follow closely.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["He says he's sorry", "A stranger writing 'by mistake', sharing a loss and working overseas", "He signs off with 'Warm wishes'"], "correct": 1,
+    "affirm": "Yes. That opening pattern is how these scams usually start, long before money comes up.",
+    "gently": "Politeness is part of the charm, so it's easy to warm to. The pattern to notice is the 'wrong address' start, the quick sharing of a loss, and the job overseas."}
+  },
+  {
+   "code": "voter-registration-problem", "name": "Voter registration problem", "category": "election", "difficulty": 3, "expires_at": "2026-11-04",
+   "from_name": "Election Records Office", "from_local": "voter-records",
+   "subject": "Action required: issue with your voter registration",
+   "content": "Dear Voter,\n\nDuring a routine review of voter rolls, we found a problem with your registration that may prevent you from voting in the upcoming election.\n\nTo keep your registration active, please confirm your identity, including your date of birth and the last four digits of your Social Security number, before the deadline:\n{link}\n\nRegistrations that are not confirmed may be removed from the rolls.\n\nElection Records Office\nVoter Services Division",
+   "tells": [
+    {"quote": "we found a problem with your registration", "note": "Election offices send problems by post, and you can always check your own registration on your state's official website."},
+    {"quote": "the last four digits of your Social Security number", "note": "Nobody needs your Social Security number by email to keep you registered."},
+    {"quote": "may be removed from the rolls", "note": "The threat of losing your vote is meant to make you act fast."}
+   ],
+   "next_steps": ["I'll check my registration on my state's official election website by typing it in myself.", "I'll call my county election office if I'm unsure.", "I won't give personal details through an email link."],
+   "learning_objective": "Election offices don't email asking for your Social Security number to keep you registered.",
+   "debrief": "Election-season scams pick up in the weeks before a vote, when people care most about being able to take part. You can check your own registration on your state's website in a couple of minutes, which is much safer than any link.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The email mentions the upcoming election", "It asks for part of your Social Security number by email", "It calls you 'Dear Voter'"], "correct": 1,
+    "affirm": "Right. No election office asks for your Social Security number through an email link.",
+    "gently": "The timing makes it feel real, which is why it works. The clearest sign is the request for your Social Security number, which no election office makes by email."},
+   "context_url": "/scam-alerts/weekly-2026-10-19"
+  },
+  {
+   "code": "benefits-suspended", "name": "Benefits suspended", "category": "government", "difficulty": 3,
+   "from_name": "Benefits Administration", "from_local": "benefits-admin",
+   "subject": "Your benefits have been suspended",
+   "content": "Notice of Suspension\n\nYour monthly benefits have been suspended due to suspicious activity linked to your Social Security number.\n\nTo reinstate your benefits and avoid a permanent hold, you must verify your identity today. A case officer has been assigned to your file.\n\nVerify and speak with your case officer:\n{link}\n\nCase reference: BA-2207-44\n\nBenefits Administration\nOffice of Inspector Services",
+   "tells": [
+    {"quote": "suspended due to suspicious activity linked to your Social Security number", "note": "Your number can't be 'suspended', and benefits aren't stopped by email."},
+    {"quote": "A case officer has been assigned to your file", "note": "The 'case officer' is the scammer. The official-sounding role is there to make you trust them."},
+    {"quote": "Case reference: BA-2207-44", "note": "A reference number makes it look official. Anyone can make one up."}
+   ],
+   "next_steps": ["I'll call the agency on a number I look up myself.", "I'll check my benefits by signing in to the official website the usual way.", "I won't call a 'case officer' named in an email."],
+   "learning_objective": "Benefits aren't suspended by email, and Social Security numbers can't be suspended.",
+   "debrief": "Government impersonation scams take a real worry, losing income you rely on, and attach official-sounding details to it. The reference number and the case officer are props. A call to the agency on a number you looked up yourself clears it up.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The case reference number", "A claim that your benefits were suspended by email over your Social Security number", "The word 'Inspector'"], "correct": 1,
+    "affirm": "Yes. Benefits aren't suspended by email, so the claim itself gives it away.",
+    "gently": "The reference number is there to make it feel official. The real giveaway is the claim itself: benefits aren't suspended by email."}
+  },
+  {
+   "code": "customs-duty-package", "name": "Customs fee on a package", "category": "delivery", "difficulty": 3,
+   "from_name": "International Shipping Customs", "from_local": "customs",
+   "subject": "Customs clearance required for your shipment",
+   "content": "Hello,\n\nA package addressed to you is being held at customs pending payment of import duties.\n\nShipment ID: 7740-2219-US\nDuty owed: $12.60\n\nPlease pay the duty within 3 days to release your package. After that, it will be returned to the sender and a storage fee will apply.\n\nPay customs duty:\n{link}\n\nInternational Shipping Customs\nClearance Department",
+   "tells": [
+    {"quote": "being held at customs pending payment of import duties", "note": "If you ordered from abroad, the shop or carrier tells you about duties at checkout or on delivery, not in a surprise email."},
+    {"quote": "Duty owed: $12.60", "note": "A small, exact amount feels routine. The real aim is your card number."},
+    {"quote": "a storage fee will apply", "note": "Adding a penalty is another way to hurry you."}
+   ],
+   "next_steps": ["I'll check the order on the shop's own website if I'm expecting something.", "I won't pay a customs fee from an email link.", "I'll delete it."],
+   "learning_objective": "Surprise customs fees by email are a variation on the delivery fee scam.",
+   "debrief": "This is a close cousin of the redelivery fee scam, dressed up with a shipment ID to look official. Most people don't know how customs fees work, which is what makes it believable.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The shipment ID number", "A surprise email asking you to pay a customs fee through a link", "The package going back to the sender"], "correct": 1,
+    "affirm": "Right. A surprise fee to pay through a link is the sign, however official the shipment number looks.",
+    "gently": "The shipment ID is there to look official. The clearest sign is being asked to pay a surprise fee through a link."}
+  },
+  {
+   "code": "shared-document-sign-in", "name": "Shared document sign-in", "category": "account_takeover", "difficulty": 3,
+   "from_name": "Shared Files", "from_local": "share-notify",
+   "subject": "A document has been shared with you: Family Photos 2026",
+   "content": "A document has been shared with you.\n\nFamily Photos 2026.pdf\n(18 pages)\n\nTo view this document, sign in with your email address and password:\n{link}\n\nThis link will expire in 48 hours.\n\nYou received this email because someone shared a file with you.",
+   "tells": [
+    {"quote": "sign in with your email address and password", "note": "A sign-in page reached from an email link is how passwords are collected. Your email password is the key to all your other accounts."},
+    {"quote": "someone shared a file with you", "note": "A real share notice tells you who shared it. 'Someone' keeps it vague so you'll assume it's family."},
+    {"quote": "Family Photos 2026.pdf", "note": "A tempting, personal-sounding file name is bait."}
+   ],
+   "next_steps": ["If I'm expecting photos, I'll ask the person directly whether they sent them.", "I won't type my email password into a page I reached from an email.", "If I already did, I'll change my password and tell someone who can help."],
+   "learning_objective": "Fake shared-document notices collect email passwords.",
+   "debrief": "Whoever has your email password can reset nearly every other password you have, which is why this simple-looking scam is so valuable to criminals. Asking the person who supposedly sent it is the fastest check.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The file is a PDF", "It doesn't say who shared it and asks for your email password", "It mentions the year"], "correct": 1,
+    "affirm": "Yes. A vague 'someone' plus a request for your password is the pattern to watch for.",
+    "gently": "The details are there to make it feel personal. The sign to notice is that it doesn't say who shared it, then asks for your password."}
+  },
+  {
+   "code": "bank-safe-account", "name": "Bank fraud team and a \"safe account\"", "category": "bank", "difficulty": 4,
+   "from_name": "Fraud Prevention Department", "from_local": "fraud-prevention",
+   "subject": "Re: Case 55120 - protecting your savings",
+   "content": "Hello,\n\nFollowing up on our fraud alert from this morning. We have confirmed that an employee at your local branch may be involved in unauthorized activity on several customer accounts, including yours.\n\nFor your protection, we have opened a temporary secure account in your name. Please move your savings into it today so they can't be accessed. The details are here:\n{link}\n\nFor your safety, please do not discuss this with branch staff, as the investigation is ongoing.\n\nFraud Prevention Department",
+   "tells": [
+    {"quote": "Following up on our fraud alert from this morning", "note": "Pretending to continue an earlier conversation makes you think you've already checked. You haven't."},
+    {"quote": "move your savings into it today", "note": "A real bank never asks you to move money to keep it safe. Your money is protected where it is."},
+    {"quote": "please do not discuss this with branch staff", "note": "The branch staff are exactly the people who'd tell you it's a scam. That's why they don't want you talking to them."}
+   ],
+   "next_steps": ["I'll hang up, or close the email, and call the number on the back of my card.", "I'll never move money to a 'safe account' for anyone.", "I'll tell someone in the family before I move any money."],
+   "learning_objective": "Banks never ask you to move money to a 'safe account' or to keep it from branch staff.",
+   "debrief": "The 'safe account' scam is one of the most expensive there is, because people move their life savings believing they're protecting them. It's harder to spot because it borrows the language of fraud protection. Any request to move money to keep it safe is the scam, however it's explained.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["Being asked to move your savings and not tell branch staff", "The case number in the subject", "Being told about a fraud alert"], "correct": 0,
+    "affirm": "Exactly. A request to move money to keep it safe, plus keeping it from the branch, is the scam every time.",
+    "gently": "Real banks do send fraud alerts, which is why this one is convincing. The giveaway is being asked to move your savings and keep it from branch staff."},
+   "context_url": "/scam-alerts/phantom-hacker-gold-courier-scam"
+  },
+  {
+   "code": "order-shipped-unknown-address", "name": "Order shipped to a strange address", "category": "shopping", "difficulty": 4,
+   "from_name": "Order Updates", "from_local": "orders",
+   "subject": "Your order #114-3920-5581 has shipped",
+   "content": "Hello,\n\nGood news, your order has shipped.\n\nItem: 65\" 4K Smart TV\nOrder total: $1,149.00\nShipping to: 2290 Lakeview Dr, Apt 4B\nEstimated delivery: Friday\n\nDon't recognize this order or this address? Review your order and report it here:\n{link}\n\nThank you for shopping with us.",
+   "tells": [
+    {"quote": "Shipping to: 2290 Lakeview Dr, Apt 4B", "note": "A strange address makes you worry someone is using your account, so you click to fix it."},
+    {"quote": "Don't recognize this order or this address?", "note": "This is the hook. The 'report' link leads to a fake sign-in page or a fake support line."},
+    {"quote": "Order total: $1,149.00", "note": "A large purchase you didn't make is meant to alarm you into acting fast."}
+   ],
+   "next_steps": ["I'll open the shop's app or type its website myself and look at my orders there.", "I'll check my card statement for the charge.", "I won't use links or phone numbers in an order email I don't recognize."],
+   "learning_objective": "Fake order confirmations use alarm about a stranger's purchase to send you to a fake support page.",
+   "debrief": "This one looks exactly like the order emails people get every week, which is why it's rated hard. There's nothing obviously wrong with it. The way to check is the same as always: go to the shop yourself, not through the email.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["The order number", "An order you didn't place, with a link to 'report' it", "The delivery day"], "correct": 1,
+    "affirm": "Yes. An order you didn't place with a convenient 'report it here' link is the setup. Checking your account yourself takes care of it.",
+    "gently": "The order number looks real, which is what makes this convincing. The sign is an order you didn't place with a link to report it, which is where the trap is."}
+  },
+  {
+   "code": "patient-portal-message", "name": "New message from your care team", "category": "health", "difficulty": 5,
+   "from_name": "Patient Portal", "from_local": "portal-notify",
+   "subject": "You have a new message from your care team",
+   "content": "You have a new secure message.\n\nA member of your care team has sent you a message about your recent visit, which may include test results.\n\nTo read it, sign in to the patient portal:\n{link}\n\nFor your privacy, the message isn't included in this email.\n\nPlease do not reply to this email. This mailbox is not monitored.",
+   "tells": [
+    {"quote": "about your recent visit, which may include test results", "note": "Test results are something everyone wants to read straight away, and that urge is what this relies on. The email never names your doctor or clinic."},
+    {"quote": "sign in to the patient portal", "note": "The link leads to a look-alike sign-in page. Open the portal the way you usually do, from a bookmark or the clinic's website."},
+    {"quote": "For your privacy, the message isn't included in this email", "note": "Real portals say this too, which is why this one is so hard to spot. The difference is how you get there."}
+   ],
+   "next_steps": ["I'll open the patient portal from my own bookmark or the clinic's website, never from the email.", "If I'm not sure, I'll call my doctor's office.", "I'll notice when an email doesn't name my doctor or clinic."],
+   "learning_objective": "Look-alike portal notices collect sign-in details; always open the portal yourself.",
+   "debrief": "This is the hardest kind, because it's nearly identical to a real notice. The only things missing are your doctor's name and the clinic's name. You don't have to spot those to stay safe. If you always open the portal yourself, the link never matters.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["It doesn't name your doctor or clinic", "It says the mailbox isn't monitored", "It mentions privacy"], "correct": 0,
+    "affirm": "Well spotted. Without your doctor's or clinic's name, it could be from anyone, and opening the portal yourself sidesteps the whole thing.",
+    "gently": "Real portals say those things too, so this one is genuinely hard. The small sign is that it never names your doctor or clinic. Opening the portal yourself sidesteps the question."}
+  },
+  {
+   "code": "phantom-hacker-federal", "name": "Hacker warning and a federal agent", "category": "bank", "difficulty": 5,
+   "from_name": "Customer Protection Services", "from_local": "protection",
+   "subject": "Security incident on your accounts: reference SP-40418",
+   "content": "Hello,\n\nWe're writing because our monitoring detected that your computer was accessed by an overseas group, and they may now be able to see your bank and retirement accounts.\n\nThis incident has been referred to a federal agency. An agent will contact you by phone today to help secure your funds. Please follow their instructions carefully and keep this matter confidential, including from family members, as it is part of an active investigation.\n\nYou can confirm your incident details here:\n{link}\n\nCustomer Protection Services\nIncident Response",
+   "tells": [
+    {"quote": "An agent will contact you by phone today to help secure your funds", "note": "Government agencies never call to help move your money. This sets up the next step of the scam, a phone call from someone posing as an official."},
+    {"quote": "keep this matter confidential, including from family members", "note": "Secrecy from family is the biggest warning sign of all. A real investigation never asks it."},
+    {"quote": "your computer was accessed by an overseas group", "note": "A frightening, hard-to-check claim is how this scam begins. You can't see it, so you have to take their word for it."}
+   ],
+   "next_steps": ["I'll tell someone in the family straight away, whatever I've been asked.", "I won't move money because of a call or email, even from someone who says they're from the government.", "I'll call my bank on the number on my card."],
+   "learning_objective": "The 'phantom hacker' scam chains a tech scare, a fake bank, and a fake government agent to move savings.",
+   "debrief": "This is a version of what the FBI calls the phantom hacker scam, which has cost older Americans enormous sums. It plays out in stages: a scare, then a fake bank or tech contact, then a fake government agent who tells you to move money. Each step makes the next one feel more believable. Telling family is what breaks the chain.",
+   "question": {"prompt": "If this had been real, what would have been the first sign it wasn't?", "choices": ["Being asked to keep it secret from family and wait for an agent to help with your money", "The reference number", "It being sent by an incident response team"], "correct": 0,
+    "affirm": "Yes. Secrecy from family and an 'agent' who'll help with your money are the two parts that give it away.",
+    "gently": "The official-sounding details are there to make you trust it. The clearest signs are the secrecy from family and the promise of an agent to help with your money."},
+   "context_url": "/scam-alerts/phantom-hacker-gold-courier-scam"
+  }
+ ]
+}

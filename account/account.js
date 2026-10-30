@@ -1,3 +1,4 @@
+import { renderCoaching } from '/practice/coaching.js';
 const $=id=>document.getElementById(id);
 const params=new URL(location.href).searchParams;
 let state, code=params.get('code');
@@ -101,6 +102,7 @@ async function refresh(){
  if(deletion){$('deletion-copy').textContent=`You asked us to delete your account. Practice has stopped and your consents are withdrawn. The account and its history will be erased on ${new Date(deletion.delete_after).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})} unless you choose to keep it.`;for(const id of ['checkout-section','plan-section','paid-section','subscription-section','seats-section','membership-section','settings'])$(id).hidden=true;}
  renderContacts();
  renderChannels();
+ renderHistory(termsCurrent&&!deletion);
  const prefs=state.preferences||{};
  fill($('preferences-form'),{max_practices_per_week:1,email_cap_per_month:4,text_cap_per_month:4,call_cap_per_month:2,quiet_hours_start:'20:00',quiet_hours_end:'09:00',alerts_opt_in:false,...prefs,paused_until:prefs.paused_until||''});
  $('preferences-form').elements.practice_enabled.checked=!!prefs.practice_enabled;
@@ -210,6 +212,39 @@ $('invite-form').addEventListener('submit',event=>{event.preventDefault();const 
 $('join-form').addEventListener('submit',event=>{event.preventDefault();run(null,()=>api({action:'join_own_plan'}));});
 $('portal-form').addEventListener('submit',async event=>{event.preventDefault();const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{message('Opening your subscription in Stripe…');const r=await billingApi('portal');location.href=r.url;}catch(error){message(error.message,true);buttons.forEach(b=>b.disabled=false);}});
 $('leave-form').addEventListener('submit',event=>{event.preventDefault();if(!confirm('Leave this plan? Your practice stops right away and the person paying is told.'))return;run(null,async()=>{await api({action:'leave_subscription'});return {message:'You’ve left the plan. Practice has stopped, and your account is still yours.'};});});
+// --- Practice history and "Was this Safekeep?". Outcomes use the words the participant sees everywhere else.
+const OUTCOMES={reported:'Spotted it',declined:'Spotted it',engaged:'Practice opportunity',completed:'Practice opportunity',no_observed_engagement:'Ignored it',inconclusive:'No result'};
+const CHANNEL_LABEL={email:'Email',text:'Text',phone:'Call'};
+function showCoaching(c){
+ const panel=$('coaching-panel');
+ renderCoaching(panel,c,{answer:async choice=>(await api({action:'practice_answer',payload:{practice_id:c.practice_id,choice}})).result,share:async details=>(await api({action:'practice_share',payload:{practice_id:c.practice_id,...details}})).message});
+ panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderHistory(allowed){
+ const history=state.practice_history||[];
+ $('history-section').hidden=!allowed||!(state.practising||history.length);
+ $('history-empty').hidden=history.length>0;
+ $('history').replaceChildren(...history.map(p=>{
+  const li=document.createElement('li'),span=document.createElement('span');
+  span.textContent=`${new Date(p.sent_at).toLocaleDateString(undefined,{month:'long',day:'numeric'})}, ${CHANNEL_LABEL[p.channel]||p.channel}: ${p.name}. ${OUTCOMES[p.result]||''}`;
+  const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent='See what to look for';
+  b.onclick=async()=>{try{showCoaching((await api({action:'practice_view',payload:{practice_id:p.practice_id}})).result);}catch(error){message(error.message,true);}};
+  li.append(span,b);return li;}));
+}
+$('check-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,out=$('check-result'),button=form.querySelector('button');button.disabled=true;
+ try{
+  const {result}=await api({action:'was_this_safekeep',payload:fields(form)});
+  if(result.ours){
+   // Show what we sent and ask whether it's the one; only "yes" records it as spotted.
+   out.replaceChildren();const q=document.createElement('p');q.textContent='We did send a practice then. Is this the message you got?';
+   const yes=document.createElement('button');yes.type='button';yes.textContent='Yes, that’s the one';
+   const no=document.createElement('button');no.type='button';no.className='secondary';no.textContent='No, mine was different';
+   yes.onclick=async()=>{yes.disabled=no.disabled=true;try{const r=await api({action:'confirm_report',payload:{practice_id:result.practice_id}});out.textContent='You spotted it. Checking was exactly the right move.';showCoaching(r.result.coaching);}catch(error){out.textContent=error.message;}};
+   no.onclick=()=>{out.textContent='Then it didn’t come from us, so treat it as real. Don’t reply, click anything in it, or call a number it gives you. If it’s about your money, call the number on the back of your card.';$('coaching-panel').replaceChildren();};
+   out.append(q,yes,no);showCoaching(result.coaching);
+  }
+  else{out.textContent='We didn’t send anything like that, so treat it as real. Don’t reply, click anything in it, or call a number it gives you. If it’s about your money, call the number on the back of your card. If you’d like a second opinion, show it to someone you trust.';$('coaching-panel').replaceChildren();}
+ }catch(error){out.textContent=error.message;}finally{button.disabled=false;}});
 $('logout').addEventListener('click',()=>run(null,()=>api({action:'logout'})));
 // Back from Stripe: the webhook usually lands within seconds. Poll the account state for up to 40 seconds until the
 // plan shows up, so the page can say "your plan is active" instead of asking the person to reload.
